@@ -1,4 +1,15 @@
-type token_type = EOF | RIGHT_PAREN | LEFT_PAREN | RIGHT_BRACE | LEFT_BRACE
+type token_type =
+  | EOF
+  | RIGHT_PAREN
+  | LEFT_PAREN
+  | RIGHT_BRACE
+  | LEFT_BRACE
+  | DOT
+  | COMMA
+  | SEMICOLON
+  | STAR
+  | PLUS
+  | MINUS
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -6,6 +17,12 @@ let string_of_token_type = function
   | LEFT_PAREN -> "LEFT_PAREN"
   | RIGHT_BRACE -> "RIGHT_BRACE"
   | LEFT_BRACE -> "LEFT_BRACE"
+  | DOT -> "DOT"
+  | COMMA -> "COMMA"
+  | SEMICOLON -> "SEMICOLON"
+  | STAR -> "STAR"
+  | MINUS -> "MINUS"
+  | PLUS -> "PLUS"
 
 class virtual ['t] token =
   object (self)
@@ -70,6 +87,60 @@ class right_brace =
     inherit [unit] token
     method token_type = RIGHT_BRACE
     method lexeme = "}"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class dot =
+  object
+    inherit [unit] token
+    method token_type = DOT
+    method lexeme = "."
+    method literal = None
+    method literal_to_string = None
+  end
+
+class comma =
+  object
+    inherit [unit] token
+    method token_type = COMMA
+    method lexeme = ","
+    method literal = None
+    method literal_to_string = None
+  end
+
+class semicolon =
+  object
+    inherit [unit] token
+    method token_type = SEMICOLON
+    method lexeme = ";"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class star =
+  object
+    inherit [unit] token
+    method token_type = STAR
+    method lexeme = "*"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class minus =
+  object
+    inherit [unit] token
+    method token_type = MINUS
+    method lexeme = "-"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class plus =
+  object
+    inherit [unit] token
+    method token_type = PLUS
+    method lexeme = "+"
     method literal = None
     method literal_to_string = None
   end

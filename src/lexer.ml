@@ -13,6 +13,12 @@ let rec tokenize (ic : in_channel) (tokens' : 'a Tokens.token list option) :
         | ')' -> new Tokens.right_paren :: tokens
         | '{' -> new Tokens.left_brace :: tokens
         | '}' -> new Tokens.right_brace :: tokens
+        | '.' -> new Tokens.dot :: tokens
+        | ',' -> new Tokens.comma :: tokens
+        | ';' -> new Tokens.semicolon :: tokens
+        | '*' -> new Tokens.star :: tokens
+        | '-' -> new Tokens.minus :: tokens
+        | '+' -> new Tokens.plus :: tokens
         | '\n' | '\t' | ' ' -> tokens
         | _ -> failwith "Unsupported input"
       in
