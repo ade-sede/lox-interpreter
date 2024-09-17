@@ -1,9 +1,11 @@
-type token_type = EOF | RIGHT_PAREN | LEFT_PAREN
+type token_type = EOF | RIGHT_PAREN | LEFT_PAREN | RIGHT_BRACE | LEFT_BRACE
 
 let string_of_token_type = function
   | EOF -> "EOF"
   | RIGHT_PAREN -> "RIGHT_PAREN"
   | LEFT_PAREN -> "LEFT_PAREN"
+  | RIGHT_BRACE -> "RIGHT_BRACE"
+  | LEFT_BRACE -> "LEFT_BRACE"
 
 class virtual ['t] token =
   object (self)
@@ -50,6 +52,24 @@ class right_paren =
     inherit [unit] token
     method token_type = RIGHT_PAREN
     method lexeme = ")"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class left_brace =
+  object
+    inherit [unit] token
+    method token_type = LEFT_BRACE
+    method lexeme = "{"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class right_brace =
+  object
+    inherit [unit] token
+    method token_type = RIGHT_BRACE
+    method lexeme = "}"
     method literal = None
     method literal_to_string = None
   end

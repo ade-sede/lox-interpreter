@@ -4,6 +4,7 @@ let () =
     exit 1);
   let command = Sys.argv.(1) in
   let filename = Sys.argv.(2) in
+
   if command <> "tokenize" then (
     Printf.eprintf "Unknown command: %s\n" command;
     exit 1);

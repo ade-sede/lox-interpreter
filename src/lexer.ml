@@ -11,6 +11,8 @@ let rec tokenize (ic : in_channel) (tokens' : 'a Tokens.token list option) :
         match char with
         | '(' -> new Tokens.left_paren :: tokens
         | ')' -> new Tokens.right_paren :: tokens
+        | '{' -> new Tokens.left_brace :: tokens
+        | '}' -> new Tokens.right_brace :: tokens
         | '\n' | '\t' | ' ' -> tokens
         | _ -> failwith "Unsupported input"
       in
