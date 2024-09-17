@@ -6,13 +6,12 @@ let rec tokenize (ic : in_channel) (tokens' : 'a Tokens.token list option) :
   | None ->
       In_channel.close ic;
       List.rev (new Tokens.eof :: tokens)
-  | Some char -> (
-      match char with
-      | '(' ->
-          let tokens = new Tokens.left_paren :: tokens in
-          tokenize ic (Some tokens)
-      | ')' ->
-          let tokens = new Tokens.right_paren :: tokens in
-          tokenize ic (Some tokens)
-      | '\n' | '\t' | ' ' -> tokenize ic (Some tokens)
-      | _ -> failwith "Unsupported input")
+  | Some char ->
+      let tokens =
+        match char with
+        | '(' -> new Tokens.left_paren :: tokens
+        | ')' -> new Tokens.right_paren :: tokens
+        | '\n' | '\t' | ' ' -> tokens
+        | _ -> failwith "Unsupported input"
+      in
+      tokenize ic (Some tokens)
