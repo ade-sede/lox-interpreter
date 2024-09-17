@@ -10,15 +10,14 @@ let () =
     Printf.eprintf "Unknown command: %s\n" command;
     exit 1);
 
-  let file_contents = In_channel.with_open_text filename In_channel.input_all in
-
-  (* You can use print statements as follows for debugging, they'll be visible when running tests. *)
-  Printf.eprintf "Logs from your program will appear here!\n";
-
-  if String.length file_contents > 0 then
-    (* Implement & use your scanner here *)
-    failwith "Scanner not implemented"
-  else
-    (* Uncomment this block to pass the first stage *)
-    (* print_endline "EOF  null"; (* Placeholder, remove this line when implementing the scanner *) *)
-    ()
+  let ic = In_channel.open_text filename in
+  let rec read_all () =
+    match In_channel.input_byte ic with
+    | Some byte ->
+        let _char = Char.chr byte in
+        read_all ()
+    | None ->
+        Printf.printf "EOF  null\n";
+        In_channel.close ic
+  in
+  read_all ()
