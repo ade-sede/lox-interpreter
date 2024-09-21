@@ -1,6 +1,7 @@
 let tokenize ic =
   let line_number = ref 1 in
   let error_count = ref 0 in
+  let prev = ref ' ' in
 
   let rec tokenize' (ic : in_channel) (tokens : 'a Tokens.token list) :
       'a Tokens.token list * int =
@@ -18,11 +19,32 @@ let tokenize ic =
           | '*' -> new Tokens.star :: tokens
           | '-' -> new Tokens.minus :: tokens
           | '+' -> new Tokens.plus :: tokens
+          (*
+                  The `=` character can represent its own `EQUAL` token, but in some cases it can also merge with another character to form a different token.
+                  Input `!=` is a single BANG_EQUAL token
+                  Input `==` is a single EQUAL_EQUAL token
+
+                  You can see this as squashing tokens
+                  [EQUAL;EQUAL] becomes [EQUAL_EQUAL]
+                  [BANG;EQUAL] becomes BANG_EQUAL
+
+                  There is one pitfall to this approach: garbled input.
+                  Consider `!@=`
+
+                  `!` gives us the BANG token
+                  `@` is discarded as it is an unknown token
+                  `=` gives us the EQUAL token
+
+                  `!@=` yields [BANG;EQUAL] and is squashed to [BANG_EQUAL], which is obviously wrong.
+                  Therefore, we need to consider both previous input character and previous token.
+
+                  Other atypical patterns to consider: `=\n=`, `===`, etc...
+              *)
           | '=' -> (
-              match tokens with
-              | head :: rest when head#token_type = Tokens.EQUAL ->
+              match (!prev, tokens) with
+              | '=', head :: rest when head#token_type = Tokens.EQUAL ->
                   new Tokens.equal_equal :: rest
-              | head :: rest when head#token_type = Tokens.BANG ->
+              | '!', head :: rest when head#token_type = Tokens.BANG ->
                   new Tokens.bang_equal :: rest
               | _ -> new Tokens.equal :: tokens)
           | '!' -> new Tokens.bang :: tokens
@@ -32,10 +54,14 @@ let tokenize ic =
               tokens
           | unknown_literal ->
               error_count := !error_count + 1;
+
               Printf.eprintf "[line %d] Error: Unexpected character: %c\n"
                 !line_number unknown_literal;
+
               tokens
         in
+
+        prev := char;
         tokenize' ic tokens
     | None ->
         In_channel.close ic;
