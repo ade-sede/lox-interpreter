@@ -46,7 +46,13 @@ let tokenize ic =
                   new Tokens.equal_equal :: rest
               | '!', head :: rest when head#token_type = Tokens.BANG ->
                   new Tokens.bang_equal :: rest
+              | '<', head :: rest when head#token_type = Tokens.LESS ->
+                  new Tokens.less_equal :: rest
+              | '>', head :: rest when head#token_type = Tokens.GREATER ->
+                  new Tokens.greater_equal :: rest
               | _ -> new Tokens.equal :: tokens)
+          | '>' -> new Tokens.greater :: tokens
+          | '<' -> new Tokens.less :: tokens
           | '!' -> new Tokens.bang :: tokens
           | '\t' | ' ' -> tokens
           | '\n' ->

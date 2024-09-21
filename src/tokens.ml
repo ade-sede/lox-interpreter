@@ -14,6 +14,10 @@ type token_type =
   | EQUAL_EQUAL
   | BANG
   | BANG_EQUAL
+  | LESS
+  | LESS_EQUAL
+  | GREATER
+  | GREATER_EQUAL
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -31,6 +35,10 @@ let string_of_token_type = function
   | EQUAL_EQUAL -> "EQUAL_EQUAL"
   | BANG -> "BANG"
   | BANG_EQUAL -> "BANG_EQUAL"
+  | LESS -> "LESS"
+  | LESS_EQUAL -> "LESS_EQUAL"
+  | GREATER -> "GREATER"
+  | GREATER_EQUAL -> "GREATER_EQUAL"
 
 class virtual ['t] token =
   object (self)
@@ -185,6 +193,42 @@ class bang_equal =
     inherit [unit] token
     method token_type = BANG_EQUAL
     method lexeme = "!="
+    method literal = None
+    method literal_to_string = None
+  end
+
+class less =
+  object
+    inherit [unit] token
+    method token_type = LESS
+    method lexeme = "<"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class less_equal =
+  object
+    inherit [unit] token
+    method token_type = LESS_EQUAL
+    method lexeme = "<="
+    method literal = None
+    method literal_to_string = None
+  end
+
+class greater =
+  object
+    inherit [unit] token
+    method token_type = GREATER
+    method lexeme = ">"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class greater_equal =
+  object
+    inherit [unit] token
+    method token_type = GREATER_EQUAL
+    method lexeme = ">="
     method literal = None
     method literal_to_string = None
   end
