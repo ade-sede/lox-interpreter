@@ -1,7 +1,9 @@
-let tokenize ic =
+type tokenize_result = { tokens : Tokens.token list; error_count : int }
+
+let tokenize ic : tokenize_result =
   let line_number = ref 1 in
   let error_count = ref 0 in
-  let prev = ref ' ' in
+  let prev_char = ref ' ' in
 
   (*
     The `=` character can represent its own `EQUAL` token, but in some cases it can also merge with another character to form a different token.
@@ -25,7 +27,7 @@ let tokenize ic =
     Other atypical patterns to consider: `=\n=`, `===`, etc...
   *)
   let handle_equal_case tokens =
-    match (!prev, tokens) with
+    match (!prev_char, tokens) with
     | '=', head :: rest when head#token_type = Tokens.EQUAL ->
         new Tokens.equal_equal :: rest
     | '!', head :: rest when head#token_type = Tokens.BANG ->
@@ -38,7 +40,7 @@ let tokenize ic =
   in
 
   let handle_slash_case tokens =
-    match (!prev, tokens) with
+    match (!prev_char, tokens) with
     | '/', head :: rest when head#token_type = Tokens.SLASH ->
         let _comment = In_channel.input_line ic in
         line_number := !line_number + 1;
@@ -56,7 +58,7 @@ let tokenize ic =
           Printf.eprintf "[line %d] Error: Unterminated string." start_line;
           None
       | Some char -> (
-          prev := char;
+          prev_char := char;
           match char with
           | '"' -> Some (List.rev charlist)
           | '\n' ->
@@ -70,7 +72,7 @@ let tokenize ic =
     | Some charlist -> Some (String.of_seq (List.to_seq charlist))
   in
 
-  let rec tokenize' (tokens : Tokens.token list) : Tokens.token list * int =
+  let rec tokenize' (tokens : Tokens.token list) =
     match In_channel.input_char ic with
     | Some char ->
         let tokens : Tokens.token list =
@@ -109,11 +111,14 @@ let tokenize ic =
               tokens
         in
 
-        prev := char;
+        prev_char := char;
         tokenize' tokens
     | None ->
         In_channel.close ic;
-        (List.rev (new Tokens.eof :: tokens), !error_count)
+        {
+          tokens = List.rev (new Tokens.eof :: tokens);
+          error_count = !error_count;
+        }
   in
 
   tokenize' []
