@@ -24,8 +24,8 @@ let tokenize ic =
     
     Other atypical patterns to consider: `=\n=`, `===`, etc...
   *)
-  let handle_equal_case prev_char tokens =
-    match (prev_char, tokens) with
+  let handle_equal_case tokens =
+    match (!prev, tokens) with
     | '=', head :: rest when head#token_type = Tokens.EQUAL ->
         new Tokens.equal_equal :: rest
     | '!', head :: rest when head#token_type = Tokens.BANG ->
@@ -37,8 +37,8 @@ let tokenize ic =
     | _ -> new Tokens.equal :: tokens
   in
 
-  let handle_slash_case prev_char ic tokens =
-    match (prev_char, tokens) with
+  let handle_slash_case tokens =
+    match (!prev, tokens) with
     | '/', head :: rest when head#token_type = Tokens.SLASH ->
         let _comment = In_channel.input_line ic in
         line_number := !line_number + 1;
@@ -46,11 +46,34 @@ let tokenize ic =
     | _ -> new Tokens.slash :: tokens
   in
 
-  let rec tokenize' (ic : in_channel) (tokens : 'a Tokens.token list) :
-      'a Tokens.token list * int =
+  let input_string_literal () =
+    let start_line = !line_number in
+
+    let rec read_charlist charlist =
+      match In_channel.input_char ic with
+      | None ->
+          error_count := !error_count + 1;
+          Printf.eprintf "[line %d] Error: Unterminated string." start_line;
+          None
+      | Some char -> (
+          prev := char;
+          match char with
+          | '"' -> Some (List.rev charlist)
+          | '\n' ->
+              line_number := !line_number + 1;
+              read_charlist ('\n' :: charlist)
+          | char -> read_charlist (char :: charlist))
+    in
+
+    match read_charlist [] with
+    | None -> None
+    | Some charlist -> Some (String.of_seq (List.to_seq charlist))
+  in
+
+  let rec tokenize' (tokens : Tokens.token list) : Tokens.token list * int =
     match In_channel.input_char ic with
     | Some char ->
-        let tokens =
+        let tokens : Tokens.token list =
           match char with
           | '(' -> new Tokens.left_paren :: tokens
           | ')' -> new Tokens.right_paren :: tokens
@@ -62,11 +85,17 @@ let tokenize ic =
           | '*' -> new Tokens.star :: tokens
           | '-' -> new Tokens.minus :: tokens
           | '+' -> new Tokens.plus :: tokens
-          | '=' -> handle_equal_case !prev tokens
+          | '=' -> handle_equal_case tokens
           | '>' -> new Tokens.greater :: tokens
           | '<' -> new Tokens.less :: tokens
           | '!' -> new Tokens.bang :: tokens
-          | '/' -> handle_slash_case !prev ic tokens
+          | '/' -> handle_slash_case tokens
+          | '"' -> (
+              match input_string_literal () with
+              | None -> tokens
+              | Some string ->
+                  let new_token = new Tokens.string_value string in
+                  new_token :: tokens)
           | '\t' | ' ' -> tokens
           | '\n' ->
               line_number := !line_number + 1;
@@ -81,10 +110,10 @@ let tokenize ic =
         in
 
         prev := char;
-        tokenize' ic tokens
+        tokenize' tokens
     | None ->
         In_channel.close ic;
         (List.rev (new Tokens.eof :: tokens), !error_count)
   in
 
-  tokenize' ic []
+  tokenize' []

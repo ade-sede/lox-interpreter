@@ -1,3 +1,5 @@
+type token_value = Int of int | String of string | None
+
 type token_type =
   | EOF
   | RIGHT_PAREN
@@ -19,6 +21,7 @@ type token_type =
   | GREATER
   | GREATER_EQUAL
   | SLASH
+  | STRING
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -41,205 +44,193 @@ let string_of_token_type = function
   | GREATER -> "GREATER"
   | GREATER_EQUAL -> "GREATER_EQUAL"
   | SLASH -> "SLASH"
+  | STRING -> "STRING"
 
-class virtual ['t] token =
+class virtual token =
   object (self)
     method virtual token_type : token_type
     method virtual lexeme : string
-    method virtual literal : 't option
+    method virtual value : token_value
 
     method to_string =
       let token_type = string_of_token_type self#token_type in
-      let literal_str =
-        match (self#literal, self#literal_to_string) with
-        | None, None -> "null"
-        | Some literal, Some mapping_fun -> mapping_fun literal
+      let value_str =
+        match self#value with
+        | None -> "null"
         | _ ->
             failwith
-              "Inconsistent token definition: literal & literal_to_str mapping"
+              "Unnable to display literal value. Literal types are expected to \
+               define their own to_string method"
       in
 
-      Printf.sprintf "%s %s %s" token_type self#lexeme literal_str
-
-    method virtual literal_to_string : ('t -> string) option
+      Printf.sprintf "%s %s %s" token_type self#lexeme value_str
   end
 
 class eof =
   object
-    inherit [unit] token
+    inherit token
     method token_type = EOF
     method lexeme = ""
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class left_paren =
   object
-    inherit [unit] token
+    inherit token
     method token_type = LEFT_PAREN
     method lexeme = "("
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class right_paren =
   object
-    inherit [unit] token
+    inherit token
     method token_type = RIGHT_PAREN
     method lexeme = ")"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class left_brace =
   object
-    inherit [unit] token
+    inherit token
     method token_type = LEFT_BRACE
     method lexeme = "{"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class right_brace =
   object
-    inherit [unit] token
+    inherit token
     method token_type = RIGHT_BRACE
     method lexeme = "}"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class dot =
   object
-    inherit [unit] token
+    inherit token
     method token_type = DOT
     method lexeme = "."
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class comma =
   object
-    inherit [unit] token
+    inherit token
     method token_type = COMMA
     method lexeme = ","
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class semicolon =
   object
-    inherit [unit] token
+    inherit token
     method token_type = SEMICOLON
     method lexeme = ";"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class star =
   object
-    inherit [unit] token
+    inherit token
     method token_type = STAR
     method lexeme = "*"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class minus =
   object
-    inherit [unit] token
+    inherit token
     method token_type = MINUS
     method lexeme = "-"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class plus =
   object
-    inherit [unit] token
+    inherit token
     method token_type = PLUS
     method lexeme = "+"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class equal =
   object
-    inherit [unit] token
+    inherit token
     method token_type = EQUAL
     method lexeme = "="
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class equal_equal =
   object
-    inherit [unit] token
+    inherit token
     method token_type = EQUAL_EQUAL
     method lexeme = "=="
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class bang =
   object
-    inherit [unit] token
+    inherit token
     method token_type = BANG
     method lexeme = "!"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class bang_equal =
   object
-    inherit [unit] token
+    inherit token
     method token_type = BANG_EQUAL
     method lexeme = "!="
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class less =
   object
-    inherit [unit] token
+    inherit token
     method token_type = LESS
     method lexeme = "<"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class less_equal =
   object
-    inherit [unit] token
+    inherit token
     method token_type = LESS_EQUAL
     method lexeme = "<="
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class greater =
   object
-    inherit [unit] token
+    inherit token
     method token_type = GREATER
     method lexeme = ">"
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class greater_equal =
   object
-    inherit [unit] token
+    inherit token
     method token_type = GREATER_EQUAL
     method lexeme = ">="
-    method literal = None
-    method literal_to_string = None
+    method value = None
   end
 
 class slash =
   object
-    inherit [unit] token
+    inherit token
     method token_type = SLASH
     method lexeme = "/"
-    method literal = None
-    method literal_to_string = None
+    method value = None
+  end
+
+class string_value string =
+  object (self)
+    inherit token
+    method token_type = STRING
+    method lexeme = Printf.sprintf "\"%s\"" string
+    method value = String string
+    method! to_string = Printf.sprintf "%s %s %s" "STRING" self#lexeme string
   end
