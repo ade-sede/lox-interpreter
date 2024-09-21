@@ -54,6 +54,12 @@ let tokenize ic =
           | '>' -> new Tokens.greater :: tokens
           | '<' -> new Tokens.less :: tokens
           | '!' -> new Tokens.bang :: tokens
+          | '/' -> (
+              match (!prev, tokens) with
+              | '/', head :: rest when head#token_type = Tokens.SLASH ->
+                  let _comment = In_channel.input_line ic in
+                  rest
+              | _ -> new Tokens.slash :: tokens)
           | '\t' | ' ' -> tokens
           | '\n' ->
               line_number := !line_number + 1;

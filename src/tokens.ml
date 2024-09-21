@@ -18,6 +18,7 @@ type token_type =
   | LESS_EQUAL
   | GREATER
   | GREATER_EQUAL
+  | SLASH
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -39,6 +40,7 @@ let string_of_token_type = function
   | LESS_EQUAL -> "LESS_EQUAL"
   | GREATER -> "GREATER"
   | GREATER_EQUAL -> "GREATER_EQUAL"
+  | SLASH -> "SLASH"
 
 class virtual ['t] token =
   object (self)
@@ -229,6 +231,15 @@ class greater_equal =
     inherit [unit] token
     method token_type = GREATER_EQUAL
     method lexeme = ">="
+    method literal = None
+    method literal_to_string = None
+  end
+
+class slash =
+  object
+    inherit [unit] token
+    method token_type = SLASH
+    method lexeme = "/"
     method literal = None
     method literal_to_string = None
   end
