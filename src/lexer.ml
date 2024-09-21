@@ -41,6 +41,7 @@ let tokenize ic =
     match (prev_char, tokens) with
     | '/', head :: rest when head#token_type = Tokens.SLASH ->
         let _comment = In_channel.input_line ic in
+        line_number := !line_number + 1;
         rest
     | _ -> new Tokens.slash :: tokens
   in
