@@ -18,6 +18,11 @@ let tokenize ic =
           | '*' -> new Tokens.star :: tokens
           | '-' -> new Tokens.minus :: tokens
           | '+' -> new Tokens.plus :: tokens
+          | '=' -> (
+              match tokens with
+              | head :: rest when head#token_type = Tokens.EQUAL ->
+                  new Tokens.equal_equal :: rest
+              | _ -> new Tokens.equal :: tokens)
           | '\t' | ' ' -> tokens
           | '\n' ->
               line_number := !line_number + 1;

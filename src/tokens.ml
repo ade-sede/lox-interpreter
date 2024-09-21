@@ -10,6 +10,8 @@ type token_type =
   | STAR
   | PLUS
   | MINUS
+  | EQUAL
+  | EQUAL_EQUAL
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -23,6 +25,8 @@ let string_of_token_type = function
   | STAR -> "STAR"
   | MINUS -> "MINUS"
   | PLUS -> "PLUS"
+  | EQUAL -> "EQUAL"
+  | EQUAL_EQUAL -> "EQUAL_EQUAL"
 
 class virtual ['t] token =
   object (self)
@@ -141,6 +145,24 @@ class plus =
     inherit [unit] token
     method token_type = PLUS
     method lexeme = "+"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class equal =
+  object
+    inherit [unit] token
+    method token_type = EQUAL
+    method lexeme = "="
+    method literal = None
+    method literal_to_string = None
+  end
+
+class equal_equal =
+  object
+    inherit [unit] token
+    method token_type = EQUAL_EQUAL
+    method lexeme = "=="
     method literal = None
     method literal_to_string = None
   end
