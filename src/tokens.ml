@@ -12,6 +12,8 @@ type token_type =
   | MINUS
   | EQUAL
   | EQUAL_EQUAL
+  | BANG
+  | BANG_EQUAL
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -27,6 +29,8 @@ let string_of_token_type = function
   | PLUS -> "PLUS"
   | EQUAL -> "EQUAL"
   | EQUAL_EQUAL -> "EQUAL_EQUAL"
+  | BANG -> "BANG"
+  | BANG_EQUAL -> "BANG_EQUAL"
 
 class virtual ['t] token =
   object (self)
@@ -163,6 +167,24 @@ class equal_equal =
     inherit [unit] token
     method token_type = EQUAL_EQUAL
     method lexeme = "=="
+    method literal = None
+    method literal_to_string = None
+  end
+
+class bang =
+  object
+    inherit [unit] token
+    method token_type = BANG
+    method lexeme = "!"
+    method literal = None
+    method literal_to_string = None
+  end
+
+class bang_equal =
+  object
+    inherit [unit] token
+    method token_type = BANG_EQUAL
+    method lexeme = "!="
     method literal = None
     method literal_to_string = None
   end

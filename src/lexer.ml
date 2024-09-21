@@ -22,7 +22,10 @@ let tokenize ic =
               match tokens with
               | head :: rest when head#token_type = Tokens.EQUAL ->
                   new Tokens.equal_equal :: rest
+              | head :: rest when head#token_type = Tokens.BANG ->
+                  new Tokens.bang_equal :: rest
               | _ -> new Tokens.equal :: tokens)
+          | '!' -> new Tokens.bang :: tokens
           | '\t' | ' ' -> tokens
           | '\n' ->
               line_number := !line_number + 1;
