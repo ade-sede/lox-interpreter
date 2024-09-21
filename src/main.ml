@@ -10,6 +10,7 @@ let () =
     exit 1);
 
   let ic = In_channel.open_text filename in
-  let tokens = Lexer.tokenize ic None in
+  let tokens, error_count = Lexer.tokenize ic in
 
-  List.iter (fun t -> Printf.printf "%s\n" t#to_string) tokens
+  List.iter (fun t -> Printf.printf "%s\n" t#to_string) tokens;
+  if error_count > 0 then exit 65
