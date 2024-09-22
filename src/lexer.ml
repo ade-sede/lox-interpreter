@@ -1,5 +1,7 @@
 type tokenize_result = { tokens : Tokens.token list; error_count : int }
 
+let is_digit = function '0' .. '9' -> true | _ -> false
+
 let tokenize ic : tokenize_result =
   let line_number = ref 1 in
   let error_count = ref 0 in
@@ -72,6 +74,33 @@ let tokenize ic : tokenize_result =
     | Some charlist -> Some (String.of_seq (List.to_seq charlist))
   in
 
+  let rollback n =
+    let pos = In_channel.pos ic in
+    In_channel.seek ic (Int64.sub pos n)
+  in
+
+  let input_number () =
+    let decimal_point = ref false in
+
+    let rec read_number charlist =
+      match In_channel.input_char ic with
+      | None -> String.of_seq (List.to_seq (List.rev charlist))
+      | Some '.' ->
+          if !decimal_point == true then (
+            rollback 1L;
+            String.of_seq (List.to_seq (List.rev charlist)))
+          else (
+            decimal_point := true;
+            read_number ('.' :: charlist))
+      | Some char when is_digit char -> read_number (char :: charlist)
+      | _ ->
+          rollback 1L;
+          String.of_seq (List.to_seq (List.rev charlist))
+    in
+
+    read_number []
+  in
+
   let rec tokenize' (tokens : Tokens.token list) =
     match In_channel.input_char ic with
     | Some char ->
@@ -102,6 +131,12 @@ let tokenize ic : tokenize_result =
           | '\n' ->
               line_number := !line_number + 1;
               tokens
+          | char when is_digit char -> (
+              rollback 1L;
+              match input_number () with
+              | str ->
+                  let new_token = new Tokens.number str in
+                  new_token :: tokens)
           | unknown_literal ->
               error_count := !error_count + 1;
 

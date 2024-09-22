@@ -1,4 +1,4 @@
-type token_value = Int of int | String of string | None
+type token_value = Number of float | String of string | None
 
 type token_type =
   | EOF
@@ -22,6 +22,7 @@ type token_type =
   | GREATER_EQUAL
   | SLASH
   | STRING
+  | NUMBER
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -45,6 +46,7 @@ let string_of_token_type = function
   | GREATER_EQUAL -> "GREATER_EQUAL"
   | SLASH -> "SLASH"
   | STRING -> "STRING"
+  | NUMBER -> "NUMBER"
 
 class virtual token =
   object (self)
@@ -232,5 +234,23 @@ class string_value string =
     method token_type = STRING
     method lexeme = Printf.sprintf "\"%s\"" string
     method value = String string
-    method! to_string = Printf.sprintf "%s %s %s" "STRING" self#lexeme string
+    method! to_string = Printf.sprintf "STRING %s %s" self#lexeme string
+  end
+
+class number string =
+  object (self)
+    inherit token
+    method token_type = NUMBER
+    method value = Number (float_of_string string)
+    method lexeme = string
+
+    method! to_string =
+      let n =
+        match self#value with Number n -> n | _ -> failwith "Expected a float"
+      in
+      let fstr = Float.to_string n in
+      let literal =
+        if String.ends_with ~suffix:"." fstr then fstr ^ "0" else fstr
+      in
+      Printf.sprintf "NUMBER %s %s" self#lexeme literal
   end
