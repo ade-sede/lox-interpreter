@@ -1,4 +1,4 @@
-type tokenize_result = { tokens : Tokens.token list; error_count : int }
+type tokenize_result = { tokens : Tokens.token list; errors : string list }
 
 let is_digit = function '0' .. '9' -> true | _ -> false
 
@@ -8,10 +8,15 @@ let is_alpha = function
   | '_' -> true
   | _ -> false
 
-let tokenize ic : tokenize_result =
+let tokenize (ic : in_channel) : tokenize_result =
   let line_number = ref 1 in
-  let error_count = ref 0 in
+  let errors = ref [] in
   let prev_char = ref ' ' in
+
+  let rollback_ic n =
+    let pos = In_channel.pos ic in
+    In_channel.seek ic (Int64.sub pos n)
+  in
 
   (*
     The `=` character can represent its own `EQUAL` token, but in some cases it can also merge with another character to form a different token.
@@ -34,7 +39,7 @@ let tokenize ic : tokenize_result =
     
     Other atypical patterns to consider: `=\n=`, `===`, etc...
   *)
-  let handle_equal_case tokens =
+  let equal tokens =
     match (!prev_char, tokens) with
     | '=', head :: rest when head#token_type = Tokens.EQUAL ->
         new Tokens.equal_equal :: rest
@@ -47,7 +52,7 @@ let tokenize ic : tokenize_result =
     | _ -> new Tokens.equal :: tokens
   in
 
-  let handle_slash_case tokens =
+  let slash tokens =
     match (!prev_char, tokens) with
     | '/', head :: rest when head#token_type = Tokens.SLASH ->
         let _comment = In_channel.input_line ic in
@@ -56,17 +61,17 @@ let tokenize ic : tokenize_result =
     | _ -> new Tokens.slash :: tokens
   in
 
-  let input_string_literal () =
+  let string_literal () =
     let start_line = !line_number in
 
     let rec read_charlist charlist =
       match In_channel.input_char ic with
       | None ->
-          error_count := !error_count + 1;
-          Printf.eprintf "[line %d] Error: Unterminated string." start_line;
+          errors :=
+            Printf.sprintf "[line %d] Error: Unterminated string." start_line
+            :: !errors;
           None
       | Some char -> (
-          prev_char := char;
           match char with
           | '"' -> Some (List.rev charlist)
           | '\n' ->
@@ -77,12 +82,10 @@ let tokenize ic : tokenize_result =
 
     match read_charlist [] with
     | None -> None
-    | Some charlist -> Some (String.of_seq (List.to_seq charlist))
-  in
-
-  let rollback n =
-    let pos = In_channel.pos ic in
-    In_channel.seek ic (Int64.sub pos n)
+    | Some charlist ->
+        let str = String.of_seq (List.to_seq charlist) in
+        let new_token = new Tokens.string_value str in
+        Some new_token
   in
 
   let input_number () =
@@ -93,18 +96,19 @@ let tokenize ic : tokenize_result =
       | None -> String.of_seq (List.to_seq (List.rev charlist))
       | Some '.' ->
           if !decimal_point == true then (
-            rollback 1L;
+            rollback_ic 1L;
             String.of_seq (List.to_seq (List.rev charlist)))
           else (
             decimal_point := true;
             read_number ('.' :: charlist))
       | Some char when is_digit char -> read_number (char :: charlist)
       | _ ->
-          rollback 1L;
+          rollback_ic 1L;
           String.of_seq (List.to_seq (List.rev charlist))
     in
 
-    read_number []
+    let digits = read_number [] in
+    new Tokens.number digits
   in
 
   let input_identifier_or_keyword () =
@@ -114,11 +118,30 @@ let tokenize ic : tokenize_result =
       | Some char when is_alpha char || is_digit char ->
           read_identifier_or_keyword (char :: charlist)
       | Some _ ->
-          rollback 1L;
+          rollback_ic 1L;
           String.of_seq (List.to_seq (List.rev charlist))
     in
 
-    read_identifier_or_keyword []
+    let str = read_identifier_or_keyword [] in
+
+    match str with
+    | "and" -> new Tokens.and_keyword
+    | "class" -> new Tokens.class_keyword
+    | "else" -> new Tokens.else_keyword
+    | "false" -> new Tokens.false_keyword
+    | "for" -> new Tokens.for_keyword
+    | "fun" -> new Tokens.fun_keyword
+    | "if" -> new Tokens.if_keyword
+    | "nil" -> new Tokens.nil_keyword
+    | "or" -> new Tokens.or_keyword
+    | "print" -> new Tokens.print_keyword
+    | "return" -> new Tokens.return_keyword
+    | "super" -> new Tokens.super_keyword
+    | "this" -> new Tokens.this_keyword
+    | "true" -> new Tokens.true_keyword
+    | "var" -> new Tokens.var_keyword
+    | "while" -> new Tokens.while_keyword
+    | _ -> new Tokens.identifier str
   in
 
   let rec tokenize' (tokens : Tokens.token list) =
@@ -126,6 +149,10 @@ let tokenize ic : tokenize_result =
     | Some char ->
         let tokens : Tokens.token list =
           match char with
+          | '\t' | ' ' -> tokens
+          | '\n' ->
+              line_number := !line_number + 1;
+              tokens
           | '(' -> new Tokens.left_paren :: tokens
           | ')' -> new Tokens.right_paren :: tokens
           | '{' -> new Tokens.left_brace :: tokens
@@ -136,66 +163,42 @@ let tokenize ic : tokenize_result =
           | '*' -> new Tokens.star :: tokens
           | '-' -> new Tokens.minus :: tokens
           | '+' -> new Tokens.plus :: tokens
-          | '=' -> handle_equal_case tokens
           | '>' -> new Tokens.greater :: tokens
           | '<' -> new Tokens.less :: tokens
           | '!' -> new Tokens.bang :: tokens
-          | '/' -> handle_slash_case tokens
+          | '/' -> slash tokens
+          | '=' -> equal tokens
           | '"' -> (
-              match input_string_literal () with
+              match string_literal () with
               | None -> tokens
-              | Some string ->
-                  let new_token = new Tokens.string_value string in
-                  new_token :: tokens)
-          | '\t' | ' ' -> tokens
-          | '\n' ->
-              line_number := !line_number + 1;
-              tokens
+              | Some new_token -> new_token :: tokens)
           | char when is_digit char ->
-              rollback 1L;
-              let digits = input_number () in
-              new Tokens.number digits :: tokens
-          | char when is_alpha char ->
-              rollback 1L;
-              let str = input_identifier_or_keyword () in
-              let new_token =
-                match str with
-                | "and" -> new Tokens.and_keyword
-                | "class" -> new Tokens.class_keyword
-                | "else" -> new Tokens.else_keyword
-                | "false" -> new Tokens.false_keyword
-                | "for" -> new Tokens.for_keyword
-                | "fun" -> new Tokens.fun_keyword
-                | "if" -> new Tokens.if_keyword
-                | "nil" -> new Tokens.nil_keyword
-                | "or" -> new Tokens.or_keyword
-                | "print" -> new Tokens.print_keyword
-                | "return" -> new Tokens.return_keyword
-                | "super" -> new Tokens.super_keyword
-                | "this" -> new Tokens.this_keyword
-                | "true" -> new Tokens.true_keyword
-                | "var" -> new Tokens.var_keyword
-                | "while" -> new Tokens.while_keyword
-                | _ -> new Tokens.identifier str
-              in
-
+              rollback_ic 1L;
+              let new_token = input_number () in
               new_token :: tokens
-          | unknown_literal ->
-              error_count := !error_count + 1;
-
-              Printf.eprintf "[line %d] Error: Unexpected character: %c\n"
-                !line_number unknown_literal;
+          | char when is_alpha char ->
+              rollback_ic 1L;
+              let new_token = input_identifier_or_keyword () in
+              new_token :: tokens
+          | unknown_char ->
+              errors :=
+                Printf.sprintf "[line %d] Error: Unexpected character: %c"
+                  !line_number unknown_char
+                :: !errors;
 
               tokens
         in
 
+        (* Need to be able to look back on prev char when current char is `=` or `/` *)
+        (* Don't trust this variable to be up to date at all points, it simply
+           isn't with the way the lexer has been implemented *)
         prev_char := char;
         tokenize' tokens
     | None ->
         In_channel.close ic;
         {
           tokens = List.rev (new Tokens.eof :: tokens);
-          error_count = !error_count;
+          errors = List.rev !errors;
         }
   in
 

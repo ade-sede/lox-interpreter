@@ -1,3 +1,8 @@
+(*
+  Dumb and simple is good. Not like this needs to be edited ever.
+  TODO: check out PPX see if its a good use-case
+ *)
+
 type token_value = Number of float | String of string | None
 
 type token_type =
