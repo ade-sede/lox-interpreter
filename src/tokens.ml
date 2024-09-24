@@ -24,6 +24,22 @@ type token_type =
   | STRING
   | NUMBER
   | IDENTIFIER
+  | AND
+  | CLASS
+  | ELSE
+  | FALSE
+  | FOR
+  | FUN
+  | IF
+  | NIL
+  | OR
+  | PRINT
+  | RETURN
+  | SUPER
+  | THIS
+  | TRUE
+  | VAR
+  | WHILE
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -49,6 +65,22 @@ let string_of_token_type = function
   | STRING -> "STRING"
   | NUMBER -> "NUMBER"
   | IDENTIFIER -> "IDENTIFIER"
+  | AND -> "AND"
+  | CLASS -> "CLASS"
+  | ELSE -> "ELSE"
+  | FALSE -> "FALSE"
+  | FOR -> "FOR"
+  | FUN -> "FUN"
+  | IF -> "IF"
+  | NIL -> "NIL"
+  | OR -> "OR"
+  | PRINT -> "PRINT"
+  | RETURN -> "RETURN"
+  | SUPER -> "SUPER"
+  | THIS -> "THIS"
+  | TRUE -> "TRUE"
+  | VAR -> "VAR"
+  | WHILE -> "WHILE"
 
 class virtual token =
   object (self)
@@ -264,4 +296,132 @@ class identifier name =
     method lexeme = name
     method value = None
     method! to_string = Printf.sprintf "IDENTIFIER %s null" name
+  end
+
+class and_keyword =
+  object
+    inherit token
+    method token_type = AND
+    method lexeme = "and"
+    method value = None
+  end
+
+class class_keyword =
+  object
+    inherit token
+    method token_type = CLASS
+    method lexeme = "class"
+    method value = None
+  end
+
+class else_keyword =
+  object
+    inherit token
+    method token_type = ELSE
+    method lexeme = "else"
+    method value = None
+  end
+
+class false_keyword =
+  object
+    inherit token
+    method token_type = FALSE
+    method lexeme = "false"
+    method value = None
+  end
+
+class for_keyword =
+  object
+    inherit token
+    method token_type = FOR
+    method lexeme = "for"
+    method value = None
+  end
+
+class fun_keyword =
+  object
+    inherit token
+    method token_type = FUN
+    method lexeme = "fun"
+    method value = None
+  end
+
+class if_keyword =
+  object
+    inherit token
+    method token_type = IF
+    method lexeme = "if"
+    method value = None
+  end
+
+class nil_keyword =
+  object
+    inherit token
+    method token_type = NIL
+    method lexeme = "nil"
+    method value = None
+  end
+
+class or_keyword =
+  object
+    inherit token
+    method token_type = OR
+    method lexeme = "or"
+    method value = None
+  end
+
+class print_keyword =
+  object
+    inherit token
+    method token_type = PRINT
+    method lexeme = "print"
+    method value = None
+  end
+
+class return_keyword =
+  object
+    inherit token
+    method token_type = RETURN
+    method lexeme = "return"
+    method value = None
+  end
+
+class super_keyword =
+  object
+    inherit token
+    method token_type = SUPER
+    method lexeme = "super"
+    method value = None
+  end
+
+class this_keyword =
+  object
+    inherit token
+    method token_type = THIS
+    method lexeme = "this"
+    method value = None
+  end
+
+class true_keyword =
+  object
+    inherit token
+    method token_type = TRUE
+    method lexeme = "true"
+    method value = None
+  end
+
+class var_keyword =
+  object
+    inherit token
+    method token_type = VAR
+    method lexeme = "var"
+    method value = None
+  end
+
+class while_keyword =
+  object
+    inherit token
+    method token_type = WHILE
+    method lexeme = "while"
+    method value = None
   end

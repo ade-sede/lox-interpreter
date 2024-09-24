@@ -158,7 +158,28 @@ let tokenize ic : tokenize_result =
           | char when is_alpha char ->
               rollback 1L;
               let str = input_identifier_or_keyword () in
-              new Tokens.identifier str :: tokens
+              let new_token =
+                match str with
+                | "and" -> new Tokens.and_keyword
+                | "class" -> new Tokens.class_keyword
+                | "else" -> new Tokens.else_keyword
+                | "false" -> new Tokens.false_keyword
+                | "for" -> new Tokens.for_keyword
+                | "fun" -> new Tokens.fun_keyword
+                | "if" -> new Tokens.if_keyword
+                | "nil" -> new Tokens.nil_keyword
+                | "or" -> new Tokens.or_keyword
+                | "print" -> new Tokens.print_keyword
+                | "return" -> new Tokens.return_keyword
+                | "super" -> new Tokens.super_keyword
+                | "this" -> new Tokens.this_keyword
+                | "true" -> new Tokens.true_keyword
+                | "var" -> new Tokens.var_keyword
+                | "while" -> new Tokens.while_keyword
+                | _ -> new Tokens.identifier str
+              in
+
+              new_token :: tokens
           | unknown_literal ->
               error_count := !error_count + 1;
 
