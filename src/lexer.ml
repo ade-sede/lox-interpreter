@@ -80,7 +80,7 @@ let tokenize (ic : in_channel) : tokenize_result =
     | Error e -> Error e
     | Ok charlist ->
         let str = String.of_seq (List.to_seq charlist) in
-        let new_token = new Tokens.string_value str in
+        let new_token = new Tokens.string_literal str in
         Ok new_token
   in
 

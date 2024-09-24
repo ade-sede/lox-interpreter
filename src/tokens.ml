@@ -267,7 +267,7 @@ class slash =
     method value = None
   end
 
-class string_value string =
+class string_literal string =
   object (self)
     inherit token
     method token_type = STRING
