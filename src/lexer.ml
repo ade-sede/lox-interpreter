@@ -67,25 +67,21 @@ let tokenize (ic : in_channel) : tokenize_result =
     let rec read_charlist charlist =
       match In_channel.input_char ic with
       | None ->
-          errors :=
-            Printf.sprintf "[line %d] Error: Unterminated string." start_line
-            :: !errors;
-          None
-      | Some char -> (
-          match char with
-          | '"' -> Some (List.rev charlist)
-          | '\n' ->
-              line_number := !line_number + 1;
-              read_charlist ('\n' :: charlist)
-          | char -> read_charlist (char :: charlist))
+          Result.Error
+            (Printf.sprintf "[line %d] Error: Unterminated string." start_line)
+      | Some '"' -> Ok (List.rev charlist)
+      | Some '\n' ->
+          line_number := !line_number + 1;
+          read_charlist ('\n' :: charlist)
+      | Some char -> read_charlist (char :: charlist)
     in
 
     match read_charlist [] with
-    | None -> None
-    | Some charlist ->
+    | Error e -> Error e
+    | Ok charlist ->
         let str = String.of_seq (List.to_seq charlist) in
         let new_token = new Tokens.string_value str in
-        Some new_token
+        Ok new_token
   in
 
   let input_number () =
@@ -93,22 +89,24 @@ let tokenize (ic : in_channel) : tokenize_result =
 
     let rec read_number charlist =
       match In_channel.input_char ic with
-      | None -> String.of_seq (List.to_seq (List.rev charlist))
-      | Some '.' ->
-          if !decimal_point == true then (
-            rollback_ic 1L;
-            String.of_seq (List.to_seq (List.rev charlist)))
-          else (
-            decimal_point := true;
-            read_number ('.' :: charlist))
+      | None -> charlist
+      | Some '.' when !decimal_point ->
+          (* There can be a maximum of 1 `.` in a number *)
+          rollback_ic 1L;
+          charlist
+      | Some '.' when not !decimal_point ->
+          decimal_point := true;
+          read_number ('.' :: charlist)
       | Some char when is_digit char -> read_number (char :: charlist)
       | _ ->
           rollback_ic 1L;
-          String.of_seq (List.to_seq (List.rev charlist))
+          charlist
     in
 
-    let digits = read_number [] in
-    new Tokens.number digits
+    let charlist = read_number [] in
+    let digits_str = String.of_seq (List.to_seq (List.rev charlist)) in
+
+    new Tokens.number digits_str
   in
 
   let input_identifier_or_keyword () =
@@ -122,9 +120,7 @@ let tokenize (ic : in_channel) : tokenize_result =
           String.of_seq (List.to_seq (List.rev charlist))
     in
 
-    let str = read_identifier_or_keyword [] in
-
-    match str with
+    match read_identifier_or_keyword [] with
     | "and" -> new Tokens.and_keyword
     | "class" -> new Tokens.class_keyword
     | "else" -> new Tokens.else_keyword
@@ -141,7 +137,7 @@ let tokenize (ic : in_channel) : tokenize_result =
     | "true" -> new Tokens.true_keyword
     | "var" -> new Tokens.var_keyword
     | "while" -> new Tokens.while_keyword
-    | _ -> new Tokens.identifier str
+    | id -> new Tokens.identifier id
   in
 
   let rec tokenize' (tokens : Tokens.token list) =
@@ -170,8 +166,10 @@ let tokenize (ic : in_channel) : tokenize_result =
           | '=' -> equal tokens
           | '"' -> (
               match string_literal () with
-              | None -> tokens
-              | Some new_token -> new_token :: tokens)
+              | Error e ->
+                  errors := e :: !errors;
+                  tokens
+              | Ok new_token -> new_token :: tokens)
           | char when is_digit char ->
               rollback_ic 1L;
               let new_token = input_number () in
@@ -190,8 +188,9 @@ let tokenize (ic : in_channel) : tokenize_result =
         in
 
         (* Need to be able to look back on prev char when current char is `=` or `/` *)
-        (* Don't trust this variable to be up to date at all points, it simply
-           isn't with the way the lexer has been implemented *)
+        (* The current impl of the lexer does not guarantee that this variable is up to date at all points *)
+        (* It works good enough for our current needs and I am satisfied with that *)
+        (* A sizeable improvement would be a buffered reader such that we can reliably check previous reads without having to cache each of them manually *)
         prev_char := char;
         tokenize' tokens
     | None ->
