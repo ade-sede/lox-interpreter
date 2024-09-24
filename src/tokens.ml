@@ -23,6 +23,7 @@ type token_type =
   | SLASH
   | STRING
   | NUMBER
+  | IDENTIFIER
 
 let string_of_token_type = function
   | EOF -> "EOF"
@@ -47,6 +48,7 @@ let string_of_token_type = function
   | SLASH -> "SLASH"
   | STRING -> "STRING"
   | NUMBER -> "NUMBER"
+  | IDENTIFIER -> "IDENTIFIER"
 
 class virtual token =
   object (self)
@@ -253,4 +255,13 @@ class number string =
         if String.ends_with ~suffix:"." fstr then fstr ^ "0" else fstr
       in
       Printf.sprintf "NUMBER %s %s" self#lexeme literal
+  end
+
+class identifier name =
+  object
+    inherit token
+    method token_type = IDENTIFIER
+    method lexeme = name
+    method value = None
+    method! to_string = Printf.sprintf "IDENTIFIER %s null" name
   end
