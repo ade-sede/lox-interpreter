@@ -90,7 +90,7 @@ let string_of_token_type = function
   | VAR -> "VAR"
   | WHILE -> "WHILE"
 
-let token_to_string token =
+let string_of_token token =
   let value_str =
     match token.value with
     | StringVal s -> s

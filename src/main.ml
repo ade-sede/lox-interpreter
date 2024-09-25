@@ -1,5 +1,6 @@
-let print_token t = Printf.printf "%s\n" (Tokens.token_to_string t)
+let print_token t = Printf.printf "%s\n" (Tokens.string_of_token t)
 let print_error e = Printf.eprintf "%s\n" e
+let print_ast ast = Printf.printf "%s\n" (Parser.string_of_ast ast)
 
 let () =
   if Array.length Sys.argv < 3 then (
@@ -20,7 +21,9 @@ let () =
       if List.length results.errors > 0 then exit 65
   | "parse" ->
       let results = Lexer.tokenize ic in
-      let _ = Parser.parse [] in
+      let ast = Parser.parse results.tokens in
+
+      print_ast ast;
 
       if List.length results.errors > 0 then exit 65
   | _ ->
