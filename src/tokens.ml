@@ -90,15 +90,16 @@ let string_of_token_type = function
   | VAR -> "VAR"
   | WHILE -> "WHILE"
 
+let string_of_token_value (value : token_value) =
+  match value with
+  | StringVal s -> s
+  | NumberVal n ->
+      let s = string_of_float n in
+      if String.ends_with ~suffix:"." s then s ^ "0" else s
+  | None -> "null"
+
 let string_of_token token =
-  let value_str =
-    match token.value with
-    | StringVal s -> s
-    | NumberVal n ->
-        let s = string_of_float n in
-        if String.ends_with ~suffix:"." s then s ^ "0" else s
-    | None -> "null"
-  in
+  let value_str = string_of_token_value token.value in
   Printf.sprintf "%s %s %s"
     (string_of_token_type token.typ)
     token.lexeme value_str
