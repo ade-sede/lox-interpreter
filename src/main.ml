@@ -23,8 +23,13 @@ let () =
       let results = Lexer.tokenize ic in
 
       (match Parser.parse results.tokens with
-      | None -> ()
-      | Some ast -> print_ast ast);
+      | Error e ->
+          Printf.eprintf "%s\n" e;
+          exit 1
+      | Ok None ->
+          Printf.eprintf "No tree.\n";
+          exit 1
+      | Ok (Some ast) -> print_ast ast);
 
       if List.length results.errors > 0 then exit 65
   | _ ->

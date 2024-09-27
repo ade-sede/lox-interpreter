@@ -1,5 +1,5 @@
 type token_value = StringVal of string | NumberVal of float | None
-type token' = { lexeme : string; value : token_value }
+type token_body = { lexeme : string; value : token_value }
 
 type token =
   [ `EOF
@@ -41,7 +41,11 @@ type token =
   | `TRUE
   | `VAR
   | `WHILE ]
-  * token'
+  * token_body
+
+let token_body_of_token (token : token) =
+  let _typ, body = token in
+  body
 
 let create_string s =
   (`STRING, { lexeme = Printf.sprintf "\"%s\"" s; value = StringVal s })

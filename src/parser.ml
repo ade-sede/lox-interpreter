@@ -1,7 +1,7 @@
 type literal_token =
-  [ `TRUE | `FALSE | `NIL | `STRING | `NUMBER ] * Tokens.token'
+  [ `TRUE | `FALSE | `NIL | `STRING | `NUMBER ] * Tokens.token_body
 
-type unary_token = [ `BANG | `MINUS ] * Tokens.token'
+type unary_token = [ `BANG | `MINUS ] * Tokens.token_body
 
 type literal = { token : literal_token }
 and group = { expr : expression }
@@ -20,37 +20,56 @@ let rec string_of_ast ast =
       | (`NUMBER | `STRING), token' -> Tokens.string_of_token_value token'.value
       )
   | Group { expr } ->
-      let inner_expr = string_of_ast expr in
-      Printf.sprintf "(group %s)" inner_expr
+      let expr = string_of_ast expr in
+
+      Printf.sprintf "(group %s)" expr
   | Unary { operator; expr } ->
-      let inner_expr = string_of_ast expr in
+      let expr = string_of_ast expr in
       let op = match operator with `BANG, _ -> "!" | `MINUS, _ -> "-" in
 
-      Printf.sprintf "(%s %s)" op inner_expr
+      Printf.sprintf "(%s %s)" op expr
 
-let parse (tokens : Tokens.token list) : ast option =
-  let rec parse' tokens : ast option * Tokens.token list =
-    match tokens with
-    | [] -> (None, tokens)
-    | head :: tail -> (
-        match head with
-        | ((`TRUE | `FALSE | `NIL | `STRING | `NUMBER) as typ), token' ->
-            (Some (Literal { token = (typ, token') }), tail)
-        | `EOF, _ -> (None, tail)
-        | `LEFT_PAREN, _ -> (
-            match parse' tail with
-            | None, _ -> (None, tokens)
-            | Some expr, tail' -> (
-                match tail' with
-                | (`RIGHT_PAREN, _) :: tail'' -> (Some (Group { expr }), tail'')
-                | _ -> failwith "Missing closing paren"))
-        | ((`BANG | `MINUS) as typ), token' -> (
-            match parse' tail with
-            | None, _ -> (None, tokens)
-            | Some expr, tail' ->
-                (Some (Unary { expr; operator = (typ, token') }), tail'))
-        | _ -> failwith "Unimplemented")
+let rec parse_expression tokens =
+  let parse_group = function
+    | (`LEFT_PAREN, _) :: tail -> (
+        match parse_expression tail with
+        | Error e -> Error e
+        | Ok (None, _) -> Ok (None, tail)
+        | Ok (Some expr, tail) -> (
+            match tail with
+            | [] -> Error "Expect expression."
+            | (`RIGHT_PAREN, _) :: tail' ->
+                let ast = Group { expr } in
+                Ok (Some ast, tail')
+            | _ -> Error "Expect right_paren."))
+    | _ -> assert false
   in
 
-  let ast, _remaining_tokens = parse' tokens in
-  ast
+  let parse_unary = function
+    | (((`BANG | `MINUS), _) as token) :: tail -> (
+        match parse_expression tail with
+        | Error e -> Error e
+        | Ok (None, _) -> Error "Expect expression."
+        | Ok (Some expr, tail') ->
+            let operator = token in
+            let ast = Unary { expr; operator } in
+
+            Ok (Some ast, tail'))
+    | _ -> Error "Expected unary operator."
+  in
+
+  match tokens with
+  | [] -> failwith "test"
+  | (`EOF, _) :: tail -> Ok (None, tail)
+  | (`LEFT_PAREN, _) :: _ -> parse_group tokens
+  | (((`TRUE | `FALSE | `NIL | `STRING | `NUMBER), _) as token) :: tail ->
+      let ast = Literal { token } in
+      Ok (Some ast, tail)
+  | ((`BANG | `MINUS), _) :: _ -> parse_unary tokens
+  | _ -> failwith "Unimplemented"
+
+let parse tokens =
+  match parse_expression tokens with
+  | Error e -> Error e
+  | Ok (None, _) -> failwith "Unimplemented"
+  | Ok (Some ast, _remaining_tokens) -> Ok (Some ast)
