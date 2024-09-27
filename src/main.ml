@@ -21,9 +21,10 @@ let () =
       if List.length results.errors > 0 then exit 65
   | "parse" ->
       let results = Lexer.tokenize ic in
-      let ast = Parser.parse results.tokens in
 
-      print_ast ast;
+      (match Parser.parse results.tokens with
+      | None -> ()
+      | Some ast -> print_ast ast);
 
       if List.length results.errors > 0 then exit 65
   | _ ->

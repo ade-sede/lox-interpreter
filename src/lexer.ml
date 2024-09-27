@@ -1,6 +1,4 @@
-open Tokens
-
-type tokenize_result = { tokens : token list; errors : string list }
+type tokenize_result = { tokens : Tokens.token list; errors : string list }
 
 let is_digit = function '0' .. '9' -> true | _ -> false
 
@@ -22,24 +20,24 @@ let tokenize (ic : in_channel) : tokenize_result =
 
   let equal tokens =
     match (!prev_char, tokens) with
-    | '=', { typ = EQUAL; _ } :: rest ->
-        Tokens.create EQUAL_EQUAL "==" None :: rest
-    | '!', { typ = BANG; _ } :: rest ->
-        Tokens.create BANG_EQUAL "!=" None :: rest
-    | '<', { typ = LESS; _ } :: rest ->
-        Tokens.create LESS_EQUAL "<=" None :: rest
-    | '>', { typ = GREATER; _ } :: rest ->
-        Tokens.create GREATER_EQUAL ">=" None :: rest
-    | _ -> Tokens.create EQUAL "=" None :: tokens
+    | '=', (`EQUAL, _) :: rest ->
+        (`EQUAL_EQUAL, { Tokens.lexeme = "=="; value = None }) :: rest
+    | '!', (`BANG, _) :: rest ->
+        (`BANG_EQUAL, { Tokens.lexeme = "!="; value = None }) :: rest
+    | '<', (`LESS, _) :: rest ->
+        (`LESS_EQUAL, { Tokens.lexeme = "<="; value = None }) :: rest
+    | '>', (`GREATER, _) :: rest ->
+        (`GREATER_EQUAL, { Tokens.lexeme = ">="; value = None }) :: rest
+    | _ -> (`EQUAL, { Tokens.lexeme = "="; value = None }) :: tokens
   in
 
   let slash tokens =
     match (!prev_char, tokens) with
-    | '/', { typ = SLASH; _ } :: rest ->
+    | '/', (`SLASH, _) :: rest ->
         let _comment = In_channel.input_line ic in
         line_number := !line_number + 1;
         rest
-    | _ -> Tokens.create SLASH "/" None :: tokens
+    | _ -> (`SLASH, { Tokens.lexeme = "/"; value = None }) :: tokens
   in
 
   let string_literal () =
@@ -61,7 +59,12 @@ let tokenize (ic : in_channel) : tokenize_result =
     | Error e -> Error e
     | Ok charlist ->
         let str = String.of_seq (List.to_seq charlist) in
-        Ok (create_string str)
+        Ok
+          ( `STRING,
+            {
+              Tokens.lexeme = Printf.sprintf "\"%s\"" str;
+              value = Tokens.StringVal str;
+            } )
   in
 
   let input_number () =
@@ -84,8 +87,11 @@ let tokenize (ic : in_channel) : tokenize_result =
 
     let charlist = read_number [] in
     let digits_str = String.of_seq (List.to_seq (List.rev charlist)) in
-
-    create_number digits_str
+    ( `NUMBER,
+      {
+        Tokens.lexeme = digits_str;
+        value = Tokens.NumberVal (float_of_string digits_str);
+      } )
   in
 
   let input_identifier_or_keyword () =
@@ -100,47 +106,51 @@ let tokenize (ic : in_channel) : tokenize_result =
     in
 
     match read_identifier_or_keyword [] with
-    | "and" -> Tokens.create AND "and" None
-    | "class" -> Tokens.create CLASS "class" None
-    | "else" -> Tokens.create ELSE "else" None
-    | "false" -> Tokens.create FALSE "false" None
-    | "for" -> Tokens.create FOR "for" None
-    | "fun" -> Tokens.create FUN "fun" None
-    | "if" -> Tokens.create IF "if" None
-    | "nil" -> Tokens.create NIL "nil" None
-    | "or" -> Tokens.create OR "or" None
-    | "print" -> Tokens.create PRINT "print" None
-    | "return" -> Tokens.create RETURN "return" None
-    | "super" -> Tokens.create SUPER "super" None
-    | "this" -> Tokens.create THIS "this" None
-    | "true" -> Tokens.create TRUE "true" None
-    | "var" -> Tokens.create VAR "var" None
-    | "while" -> Tokens.create WHILE "while" None
-    | id -> Tokens.create IDENTIFIER id None
+    | "and" -> (`AND, { Tokens.lexeme = "and"; value = None })
+    | "class" -> (`CLASS, { Tokens.lexeme = "class"; value = None })
+    | "else" -> (`ELSE, { Tokens.lexeme = "else"; value = None })
+    | "false" -> (`FALSE, { Tokens.lexeme = "false"; value = None })
+    | "for" -> (`FOR, { Tokens.lexeme = "for"; value = None })
+    | "fun" -> (`FUN, { Tokens.lexeme = "fun"; value = None })
+    | "if" -> (`IF, { Tokens.lexeme = "if"; value = None })
+    | "nil" -> (`NIL, { Tokens.lexeme = "nil"; value = None })
+    | "or" -> (`OR, { Tokens.lexeme = "or"; value = None })
+    | "print" -> (`PRINT, { Tokens.lexeme = "print"; value = None })
+    | "return" -> (`RETURN, { Tokens.lexeme = "return"; value = None })
+    | "super" -> (`SUPER, { Tokens.lexeme = "super"; value = None })
+    | "this" -> (`THIS, { Tokens.lexeme = "this"; value = None })
+    | "true" -> (`TRUE, { Tokens.lexeme = "true"; value = None })
+    | "var" -> (`VAR, { Tokens.lexeme = "var"; value = None })
+    | "while" -> (`WHILE, { Tokens.lexeme = "while"; value = None })
+    | id -> (`IDENTIFIER, { Tokens.lexeme = id; value = None })
   in
 
-  let rec tokenize' (tokens : token list) =
+  let rec tokenize' (tokens : Tokens.token list) =
     match In_channel.input_char ic with
     | Some char ->
-        let tokens : token list =
+        let tokens =
           match char with
           | '\t' | ' ' -> tokens
           | '\n' ->
               line_number := !line_number + 1;
               tokens
-          | '(' -> Tokens.create LEFT_PAREN "(" None :: tokens
-          | ')' -> Tokens.create RIGHT_PAREN ")" None :: tokens
-          | '{' -> Tokens.create LEFT_BRACE "{" None :: tokens
-          | '}' -> Tokens.create RIGHT_BRACE "}" None :: tokens
-          | '.' -> Tokens.create DOT "." None :: tokens
-          | ',' -> Tokens.create COMMA "," None :: tokens
-          | ';' -> Tokens.create SEMICOLON ";" None :: tokens
-          | '*' -> Tokens.create STAR "*" None :: tokens
-          | '-' -> Tokens.create MINUS "-" None :: tokens
-          | '+' -> Tokens.create PLUS "+" None :: tokens
-          | '>' -> Tokens.create GREATER ">" None :: tokens
-          | '<' -> Tokens.create LESS "<" None :: tokens
-          | '!' -> Tokens.create BANG "!" None :: tokens
+          | '(' ->
+              (`LEFT_PAREN, { Tokens.lexeme = "("; value = None }) :: tokens
+          | ')' ->
+              (`RIGHT_PAREN, { Tokens.lexeme = ")"; value = None }) :: tokens
+          | '{' ->
+              (`LEFT_BRACE, { Tokens.lexeme = "{"; value = None }) :: tokens
+          | '}' ->
+              (`RIGHT_BRACE, { Tokens.lexeme = "}"; value = None }) :: tokens
+          | '.' -> (`DOT, { Tokens.lexeme = "."; value = None }) :: tokens
+          | ',' -> (`COMMA, { Tokens.lexeme = ","; value = None }) :: tokens
+          | ';' -> (`SEMICOLON, { Tokens.lexeme = ";"; value = None }) :: tokens
+          | '*' -> (`STAR, { Tokens.lexeme = "*"; value = None }) :: tokens
+          | '-' -> (`MINUS, { Tokens.lexeme = "-"; value = None }) :: tokens
+          | '+' -> (`PLUS, { Tokens.lexeme = "+"; value = None }) :: tokens
+          | '>' -> (`GREATER, { Tokens.lexeme = ">"; value = None }) :: tokens
+          | '<' -> (`LESS, { Tokens.lexeme = "<"; value = None }) :: tokens
+          | '!' -> (`BANG, { Tokens.lexeme = "!"; value = None }) :: tokens
           | '/' -> slash tokens
           | '=' -> equal tokens
           | '"' -> (
@@ -162,7 +172,6 @@ let tokenize (ic : in_channel) : tokenize_result =
                 Printf.sprintf "[line %d] Error: Unexpected character: %c"
                   !line_number unknown_char
                 :: !errors;
-
               tokens
         in
 
@@ -175,7 +184,8 @@ let tokenize (ic : in_channel) : tokenize_result =
     | None ->
         In_channel.close ic;
         {
-          tokens = List.rev (Tokens.create EOF "" None :: tokens);
+          tokens =
+            List.rev ((`EOF, { Tokens.lexeme = ""; value = None }) :: tokens);
           errors = List.rev !errors;
         }
   in
