@@ -1,11 +1,6 @@
-type literal_token =
-  [ `TRUE | `FALSE | `NIL | `STRING | `NUMBER ] * Tokens.token_body
-
-type unary_token = [ `BANG | `MINUS ] * Tokens.token_body
-
-type literal = { token : literal_token }
+type literal = { token : Tokens.literal_token }
 and group = { expr : expression }
-and unary = { operator : unary_token; expr : expression }
+and unary = { operator : Tokens.unary_operator_token; expr : expression }
 and expression = Literal of literal | Group of group | Unary of unary
 
 type ast = expression
@@ -17,8 +12,8 @@ let rec string_of_ast ast =
       | `TRUE, _ -> "true"
       | `FALSE, _ -> "false"
       | `NIL, _ -> "nil"
-      | (`NUMBER | `STRING), token' -> Tokens.string_of_token_value token'.value
-      )
+      | (`NUMBER | `STRING), token_body ->
+          Tokens.string_of_token_value token_body.value)
   | Group { expr } ->
       let expr = string_of_ast expr in
 

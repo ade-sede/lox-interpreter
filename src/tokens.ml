@@ -1,7 +1,7 @@
 type token_value = StringVal of string | NumberVal of float | None
 type token_body = { lexeme : string; value : token_value }
 
-type token =
+type token_type =
   [ `EOF
   | `LEFT_PAREN
   | `RIGHT_PAREN
@@ -41,7 +41,10 @@ type token =
   | `TRUE
   | `VAR
   | `WHILE ]
-  * token_body
+
+type token = token_type * token_body
+type literal_token = [ `TRUE | `FALSE | `NIL | `STRING | `NUMBER ] * token_body
+type unary_operator_token = [ `BANG | `MINUS ] * token_body
 
 let token_body_of_token (token : token) =
   let _typ, body = token in
