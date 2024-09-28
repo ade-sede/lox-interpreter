@@ -2,5 +2,5 @@
 
 (executable
  (name main)
- (modules parser lexer tokens main)
+ (modules evaluator parser lexer tokens main)
  (libraries lwt))

@@ -19,18 +19,38 @@ let () =
       List.iter print_token results.tokens;
 
       if List.length results.errors > 0 then exit 65
-  | "parse" ->
+  | "parse" -> (
       let results = Lexer.tokenize ic in
 
-      (match Parser.parse results.tokens with
-      | Error e ->
-          Printf.eprintf "%s\n" e;
-          exit 65
-      | Ok None ->
-          Printf.eprintf "No tree.\n";
-          exit 1
-      | Ok (Some ast) -> print_ast ast);
-      if List.length results.errors > 0 then exit 65
+      if List.length results.errors > 0 then (
+        List.iter print_error results.errors;
+        exit 65)
+      else
+        match Parser.parse results.tokens with
+        | Error e ->
+            Printf.eprintf "%s\n" e;
+            exit 65
+        | Ok None -> assert false
+        | Ok (Some ast) -> print_ast ast)
+  | "evaluate" -> (
+      let results = Lexer.tokenize ic in
+
+      if List.length results.errors > 0 then (
+        List.iter print_error results.errors;
+        exit 65)
+      else
+        match Parser.parse results.tokens with
+        | Error e ->
+            Printf.eprintf "%s\n" e;
+            exit 65
+        | Ok None -> assert false
+        | Ok (Some ast) -> (
+            match Evaluator.evaluate ast with
+            | Nil -> Printf.printf "nil\n"
+            | Boolean true -> Printf.printf "true\n"
+            | Boolean false -> Printf.printf "false\n"
+            | String s -> Printf.printf "%s\n" s
+            | Number n -> Printf.printf "%f\n" n))
   | _ ->
       In_channel.close ic;
       Printf.eprintf "Unknown command: %s\n" command;
