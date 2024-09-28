@@ -63,7 +63,7 @@ let tokenize (ic : in_channel) : tokenize_result =
           ( `STRING,
             {
               Tokens.lexeme = Printf.sprintf "\"%s\"" str;
-              value = Tokens.StringVal str;
+              value = Tokens.String str;
             } )
   in
 
@@ -90,7 +90,7 @@ let tokenize (ic : in_channel) : tokenize_result =
     ( `NUMBER,
       {
         Tokens.lexeme = digits_str;
-        value = Tokens.NumberVal (float_of_string digits_str);
+        value = Tokens.Number (float_of_string digits_str);
       } )
   in
 

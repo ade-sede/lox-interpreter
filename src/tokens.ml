@@ -1,4 +1,4 @@
-type token_value = StringVal of string | NumberVal of float | None
+type token_value = String of string | Number of float | None
 type token_body = { lexeme : string; value : token_value }
 
 type token_type =
@@ -65,11 +65,11 @@ let token_body_of_token (token : token) =
   body
 
 let create_string s =
-  (`STRING, { lexeme = Printf.sprintf "\"%s\"" s; value = StringVal s })
+  (`STRING, { lexeme = Printf.sprintf "\"%s\"" s; value = String s })
 
 let create_number s =
   let n = float_of_string s in
-  (`NUMBER, { lexeme = s; value = NumberVal n })
+  (`NUMBER, { lexeme = s; value = Number n })
 
 let string_of_token_type = function
   | `EOF -> "EOF"
@@ -113,8 +113,8 @@ let string_of_token_type = function
   | `WHILE -> "WHILE"
 
 let string_of_token_value = function
-  | StringVal s -> s
-  | NumberVal n ->
+  | String s -> s
+  | Number n ->
       let s = string_of_float n in
       if String.ends_with ~suffix:"." s then s ^ "0" else s
   | None -> "null"
