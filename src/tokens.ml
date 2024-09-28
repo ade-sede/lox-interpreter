@@ -46,6 +46,20 @@ type token = token_type * token_body
 type literal_token = [ `TRUE | `FALSE | `NIL | `STRING | `NUMBER ] * token_body
 type unary_operator_token = [ `BANG | `MINUS ] * token_body
 
+type binary_operator_token =
+  [ `PLUS
+  | `MINUS
+  | `SLASH
+  | `STAR
+  | `BANG_EQUAL
+  | `EQUAL
+  | `EQUAL_EQUAL
+  | `GREATER
+  | `GREATER_EQUAL
+  | `LESS
+  | `LESS_EQUAL ]
+  * token_body
+
 let token_body_of_token (token : token) =
   let _typ, body = token in
   body
