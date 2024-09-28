@@ -1,5 +1,13 @@
 type value = Nil | Boolean of bool | String of string | Number of float
 
+let string_of_evaluation value =
+  match value with
+  | Nil -> Printf.printf "nil\n"
+  | Boolean true -> Printf.printf "true\n"
+  | Boolean false -> Printf.printf "false\n"
+  | String s -> Printf.printf "%s\n" s
+  | Number n -> Printf.printf "%g\n" n
+
 let evaluate ast : value =
   match ast with
   | Parser.Literal { token } -> (

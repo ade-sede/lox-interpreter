@@ -44,13 +44,9 @@ let () =
             Printf.eprintf "%s\n" e;
             exit 65
         | Ok None -> assert false
-        | Ok (Some ast) -> (
-            match Evaluator.evaluate ast with
-            | Nil -> Printf.printf "nil\n"
-            | Boolean true -> Printf.printf "true\n"
-            | Boolean false -> Printf.printf "false\n"
-            | String s -> Printf.printf "%s\n" s
-            | Number n -> Printf.printf "%f\n" n))
+        | Ok (Some ast) ->
+            let value = Evaluator.evaluate ast in
+            Evaluator.string_of_evaluation value)
   | _ ->
       In_channel.close ic;
       Printf.eprintf "Unknown command: %s\n" command;
