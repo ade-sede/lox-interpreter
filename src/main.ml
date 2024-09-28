@@ -25,12 +25,11 @@ let () =
       (match Parser.parse results.tokens with
       | Error e ->
           Printf.eprintf "%s\n" e;
-          exit 1
+          exit 65
       | Ok None ->
           Printf.eprintf "No tree.\n";
           exit 1
       | Ok (Some ast) -> print_ast ast);
-
       if List.length results.errors > 0 then exit 65
   | _ ->
       In_channel.close ic;
