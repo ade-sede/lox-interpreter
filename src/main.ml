@@ -46,7 +46,7 @@ let () =
         | Ok None -> assert false
         | Ok (Some ast) ->
             let value = Evaluator.evaluate ast in
-            Evaluator.string_of_evaluation value)
+            Printf.printf "%s\n" (Evaluator.string_of_evaluation value))
   | _ ->
       In_channel.close ic;
       Printf.eprintf "Unknown command: %s\n" command;

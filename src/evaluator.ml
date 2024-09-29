@@ -2,11 +2,11 @@ type value = Nil | Boolean of bool | String of string | Number of float
 
 let string_of_evaluation value =
   match value with
-  | Nil -> Printf.printf "nil\n"
-  | Boolean true -> Printf.printf "true\n"
-  | Boolean false -> Printf.printf "false\n"
-  | String s -> Printf.printf "%s\n" s
-  | Number n -> Printf.printf "%g\n" n
+  | Nil -> Printf.sprintf "nil"
+  | Boolean true -> Printf.sprintf "true"
+  | Boolean false -> Printf.sprintf "false"
+  | String s -> Printf.sprintf "%s" s
+  | Number n -> Printf.sprintf "%g" n
 
 let rec evaluate ast : value =
   match ast with
