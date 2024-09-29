@@ -46,4 +46,8 @@ let rec evaluate ast : value =
       | (`LESS_EQUAL, _), Number left, Number right -> Boolean (left <= right)
       | (`GREATER, _), Number left, Number right -> Boolean (left > right)
       | (`GREATER_EQUAL, _), Number left, Number right -> Boolean (left >= right)
+      | (`EQUAL_EQUAL, _), Number left, Number right -> Boolean (left == right)
+      | (`BANG_EQUAL, _), Number left, Number right -> Boolean (left != right)
+      | (`EQUAL_EQUAL, _), String left, String right -> Boolean (left == right)
+      | (`BANG_EQUAL, _), String left, String right -> Boolean (left != right)
       | _, _, _ -> failwith "Unimplemented")
