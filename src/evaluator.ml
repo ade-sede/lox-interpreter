@@ -63,6 +63,10 @@ let rec evaluate ast =
           Ok (Boolean (left > right))
       | (`GREATER_EQUAL, _), Ok (Number left), Ok (Number right) ->
           Ok (Boolean (left >= right))
+      | (`LESS, _), _, _ -> Error "Operands must be numbers."
+      | (`LESS_EQUAL, _), _, _ -> Error "Operands must be numbers."
+      | (`GREATER, _), _, _ -> Error "Operands must be numbers."
+      | (`GREATER_EQUAL, _), _, _ -> Error "Operands must be numbers."
       | (`EQUAL_EQUAL, _), Ok (Number left), Ok (Number right) ->
           Ok (Boolean (Float.equal left right))
       | (`BANG_EQUAL, _), Ok (Number left), Ok (Number right) ->
