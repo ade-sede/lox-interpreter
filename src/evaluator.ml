@@ -41,4 +41,5 @@ let rec evaluate ast : value =
       | (`STAR, _), Number left, Number right -> Number (Float.mul left right)
       | (`MINUS, _), Number left, Number right -> Number (Float.sub left right)
       | (`PLUS, _), Number left, Number right -> Number (Float.add left right)
+      | (`PLUS, _), String left, String right -> String (left ^ right)
       | _, _, _ -> failwith "Unimplemented")
