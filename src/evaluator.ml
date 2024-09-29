@@ -45,6 +45,8 @@ let rec evaluate ast =
           Ok (Number (Float.div left right))
       | (`STAR, _), Ok (Number left), Ok (Number right) ->
           Ok (Number (Float.mul left right))
+      | (`SLASH, _), _, _ -> Error "Operands must be numbers."
+      | (`STAR, _), _, _ -> Error "Operands must be numbers."
       | (`MINUS, _), Ok (Number left), Ok (Number right) ->
           Ok (Number (Float.sub left right))
       | (`PLUS, _), Ok (Number left), Ok (Number right) ->
