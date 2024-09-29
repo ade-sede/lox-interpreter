@@ -8,7 +8,7 @@ let string_of_evaluation value =
   | String s -> Printf.printf "%s\n" s
   | Number n -> Printf.printf "%g\n" n
 
-let evaluate ast : value =
+let rec evaluate ast : value =
   match ast with
   | Parser.Literal { token } -> (
       match token with
@@ -25,4 +25,5 @@ let evaluate ast : value =
           | None -> assert false
           | Number _ -> assert false
           | String s -> String s))
+  | Parser.Group { expr } -> evaluate expr
   | _ -> failwith "Unimplemented"
