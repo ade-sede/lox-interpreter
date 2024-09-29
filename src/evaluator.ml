@@ -42,4 +42,8 @@ let rec evaluate ast : value =
       | (`MINUS, _), Number left, Number right -> Number (Float.sub left right)
       | (`PLUS, _), Number left, Number right -> Number (Float.add left right)
       | (`PLUS, _), String left, String right -> String (left ^ right)
+      | (`LESS, _), Number left, Number right -> Boolean (left < right)
+      | (`LESS_EQUAL, _), Number left, Number right -> Boolean (left <= right)
+      | (`GREATER, _), Number left, Number right -> Boolean (left > right)
+      | (`GREATER_EQUAL, _), Number left, Number right -> Boolean (left >= right)
       | _, _, _ -> failwith "Unimplemented")
