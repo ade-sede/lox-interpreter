@@ -33,4 +33,10 @@ let rec evaluate ast : value =
       | (`BANG, _), (Boolean false | Nil) -> Boolean true
       | (`MINUS, _), Number n -> Number (-.n)
       | _, _ -> failwith "Type mismatch")
-  | _ -> failwith "Unimplemented"
+  | Parser.Binary { left_expr; operator; right_expr } -> (
+      let left = evaluate left_expr in
+      let right = evaluate right_expr in
+      match (operator, left, right) with
+      | (`SLASH, _), Number left, Number right -> Number (Float.div left right)
+      | (`STAR, _), Number left, Number right -> Number (Float.mul left right)
+      | _, _, _ -> failwith "Unimplemented")
