@@ -26,4 +26,11 @@ let rec evaluate ast : value =
           | Number _ -> assert false
           | String s -> String s))
   | Parser.Group { expr } -> evaluate expr
+  | Parser.Unary { expr; operator } -> (
+      let value = evaluate expr in
+      match (operator, value) with
+      | (`BANG, _), (Boolean true | Number _) -> Boolean false
+      | (`BANG, _), (Boolean false | Nil) -> Boolean true
+      | (`MINUS, _), Number n -> Number (-.n)
+      | _, _ -> failwith "Type mismatch")
   | _ -> failwith "Unimplemented"
