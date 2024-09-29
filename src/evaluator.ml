@@ -39,4 +39,6 @@ let rec evaluate ast : value =
       match (operator, left, right) with
       | (`SLASH, _), Number left, Number right -> Number (Float.div left right)
       | (`STAR, _), Number left, Number right -> Number (Float.mul left right)
+      | (`MINUS, _), Number left, Number right -> Number (Float.sub left right)
+      | (`PLUS, _), Number left, Number right -> Number (Float.add left right)
       | _, _, _ -> failwith "Unimplemented")
