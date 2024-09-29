@@ -53,6 +53,8 @@ let rec evaluate ast =
           Ok (Number (Float.add left right))
       | (`PLUS, _), Ok (String left), Ok (String right) ->
           Ok (String (left ^ right))
+      | (`MINUS, _), _, _ -> Error "Operands must be numbers."
+      | (`PLUS, _), _, _ -> Error "Operands must be two numbers or two strings."
       | (`LESS, _), Ok (Number left), Ok (Number right) ->
           Ok (Boolean (left < right))
       | (`LESS_EQUAL, _), Ok (Number left), Ok (Number right) ->
