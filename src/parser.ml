@@ -21,7 +21,7 @@ and expression =
 and printStmt = { expr : expression }
 and exprStmt = { expr : expression }
 
-and declaration = {
+and variable_declaration = {
   identifier : Tokens.identifier_token;
   initial_value : expression option;
 }
@@ -29,7 +29,7 @@ and declaration = {
 and statement =
   | ExprStmt of exprStmt
   | PrintStmt of printStmt
-  | Declaration of declaration
+  | Declaration of variable_declaration
 
 and program = statement list
 
