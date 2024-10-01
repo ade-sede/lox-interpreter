@@ -36,13 +36,9 @@ and program = statement list
 
 let rec string_of_expr expr =
   match expr with
-  | Identifier { token } ->
+  | Identifier { token } -> (
       let _, body = token in
-      let identifier =
-        match body.value with String s -> s | _ -> assert false
-      in
-
-      identifier
+      match body.value with String s -> s | _ -> assert false)
   | Literal { token } -> (
       match token with
       | `TRUE, _ -> "true"
@@ -50,17 +46,12 @@ let rec string_of_expr expr =
       | `NIL, _ -> "nil"
       | (`NUMBER | `STRING), token_body ->
           Tokens.string_of_token_value token_body.value)
-  | Group { expr } ->
-      let expr = string_of_expr expr in
-
-      Printf.sprintf "(group %s)" expr
+  | Group { expr } -> Printf.sprintf "(group %s)" (string_of_expr expr)
   | Unary { operator; expr } ->
-      let expr = string_of_expr expr in
-      let operator = match operator with `BANG, _ -> "!" | `MINUS, _ -> "-" in
-
-      Printf.sprintf "(%s %s)" operator expr
+      let op_str = match operator with `BANG, _ -> "!" | `MINUS, _ -> "-" in
+      Printf.sprintf "(%s %s)" op_str (string_of_expr expr)
   | Binary { operator; left_expr; right_expr } ->
-      let operator =
+      let op_str =
         match operator with
         | `PLUS, _ -> "+"
         | `MINUS, _ -> "-"
@@ -74,143 +65,136 @@ let rec string_of_expr expr =
         | `LESS, _ -> "<"
         | `LESS_EQUAL, _ -> "<="
       in
-      let left_expr = string_of_expr left_expr in
-      let right_expr = string_of_expr right_expr in
-
-      Printf.sprintf "(%s %s %s)" operator left_expr right_expr
+      Printf.sprintf "(%s %s %s)" op_str (string_of_expr left_expr)
+        (string_of_expr right_expr)
   | Assignment _ ->
       failwith "String representation of 'Assignment' is not supported"
 
 let rec parse_statement tokens =
   match tokens with
-  | (`LEFT_BRACE, _) :: tail ->
-      let rec parse_block' statements tokens =
-        match parse_statement tokens with
-        | Error e -> Error e
-        | Ok (None, _) -> Error "Expected statement."
-        | Ok (Some new_statement, tail) -> (
-            match tail with
-            | (`RIGHT_BRACE, _) :: tail' ->
-                let statements = List.rev (new_statement :: statements) in
-                let block = Block statements in
+  | (`LEFT_BRACE, _) :: tail -> parse_block tail []
+  | (`PRINT, _) :: tail -> parse_print_statement tail
+  | (`VAR, _) :: (`IDENTIFIER, id) :: tail -> parse_var_declaration id tail
+  | _ -> parse_expression_statement tokens
 
-                Ok (Some block, tail')
-            | _ -> parse_block' (new_statement :: statements) tail)
-      in
+and parse_block tokens acc =
+  match parse_statement tokens with
+  | Error e -> Error e
+  | Ok (None, _) -> Error "Expected statement."
+  | Ok (Some new_statement, (`RIGHT_BRACE, _) :: tail') ->
+      let statements = List.rev (new_statement :: acc) in
+      Ok (Some (Block statements), tail')
+  | Ok (Some new_statement, tail) -> parse_block tail (new_statement :: acc)
 
-      parse_block' [] tail
-  | (`PRINT, _) :: tail -> (
+and parse_print_statement tokens =
+  match parse_expression tokens with
+  | Error e -> Error e
+  | Ok (None, _) -> Error "Expected expression after print keyword"
+  | Ok (Some expr, (`SEMICOLON, _) :: tail) ->
+      Ok (Some (PrintStmt { expr }), tail)
+  | Ok (Some _, _) -> Error "Expected ';' after expression"
+
+and parse_var_declaration id = function
+  | (`EQUAL, _) :: tail -> (
       match parse_expression tail with
       | Error e -> Error e
-      | Ok (None, _) -> Error "Expected expression after print keyword"
-      | Ok (Some expr, tail') -> (
-          match tail' with
-          | (`SEMICOLON, _) :: tail'' ->
-              let statement = PrintStmt { expr } in
-              Ok (Some statement, tail'')
-          | _ -> Error "Expected ';' after expression"))
-  | (`VAR, _) :: (`IDENTIFIER, id) :: (`EQUAL, _) :: tail -> (
-      match parse_expression tail with
-      | Error e -> Error e
-      | Ok (None, _) -> Error "Expected expression after print keyword"
-      | Ok (Some expr, tail') -> (
-          match tail' with
-          | (`SEMICOLON, _) :: tail'' ->
-              let declaration =
-                Declaration
-                  { initial_value = Some expr; identifier = (`IDENTIFIER, id) }
-              in
-              Ok (Some declaration, tail'')
-          | _ -> Error "Expected ';' after expression"))
-  | (`VAR, _) :: (`IDENTIFIER, id) :: (`SEMICOLON, _) :: tail ->
-      let declaration =
-        Declaration { initial_value = None; identifier = (`IDENTIFIER, id) }
-      in
-      Ok (Some declaration, tail)
-  | _ -> (
-      match parse_expression tokens with
-      | Error e -> Error e
-      | Ok (None, _) -> Error "Expected expression after print keyword"
-      | Ok (Some expr, tail) -> (
-          match tail with
-          | (`SEMICOLON, _) :: tail' ->
-              let statement = ExprStmt { expr } in
-              Ok (Some statement, tail')
-          | _ -> Error "Expected ';' after expression"))
+      | Ok (None, _) -> Error "Expected expression after '='"
+      | Ok (Some expr, (`SEMICOLON, _) :: tail') ->
+          Ok
+            ( Some
+                (Declaration
+                   { initial_value = Some expr; identifier = (`IDENTIFIER, id) }),
+              tail' )
+      | Ok (Some _, _) -> Error "Expected ';' after expression")
+  | (`SEMICOLON, _) :: tail ->
+      Ok
+        ( Some
+            (Declaration
+               { initial_value = None; identifier = (`IDENTIFIER, id) }),
+          tail )
+  | _ -> Error "Expected '=' or ';' after variable name"
+
+and parse_expression_statement tokens =
+  match parse_expression tokens with
+  | Error e -> Error e
+  | Ok (None, _) -> Error "Expected expression"
+  | Ok (Some expr, (`SEMICOLON, _) :: tail) ->
+      Ok (Some (ExprStmt { expr }), tail)
+  | Ok (Some _, _) -> Error "Expected ';' after expression"
 
 and parse_expression tokens = parse_equality tokens
 
 and parse_equality tokens =
-  let rec parse_equality' left tokens =
-    match tokens with
+  let rec parse_equality_tail left = function
     | (((`BANG_EQUAL | `EQUAL_EQUAL), _) as op) :: tail -> (
         match parse_comparison tail with
         | Error e -> Error e
         | Ok (Some right, tail') ->
-            parse_equality'
-              (Binary { left_expr = left; operator = op; right_expr = right })
-              tail'
+            let new_left =
+              Binary { left_expr = left; operator = op; right_expr = right }
+            in
+            parse_equality_tail new_left tail'
         | Ok (None, _) -> Error "Expected expression after equality operator")
-    | _ -> Ok (Some left, tokens)
+    | tokens -> Ok (Some left, tokens)
   in
   match parse_comparison tokens with
   | Error e -> Error e
-  | Ok (Some left, tail) -> parse_equality' left tail
+  | Ok (Some left, tail) -> parse_equality_tail left tail
   | Ok (None, _) -> Ok (None, tokens)
 
 and parse_comparison tokens =
-  let rec parse_comparison' left tokens =
-    match tokens with
+  let rec parse_comparison_tail left = function
     | (((`LESS | `LESS_EQUAL | `GREATER | `GREATER_EQUAL), _) as op) :: tail
       -> (
         match parse_term tail with
         | Error e -> Error e
         | Ok (Some right, tail') ->
-            parse_comparison'
-              (Binary { left_expr = left; operator = op; right_expr = right })
-              tail'
+            let new_left =
+              Binary { left_expr = left; operator = op; right_expr = right }
+            in
+            parse_comparison_tail new_left tail'
         | Ok (None, _) -> Error "Expected expression after comparison operator")
-    | _ -> Ok (Some left, tokens)
+    | tokens -> Ok (Some left, tokens)
   in
   match parse_term tokens with
   | Error e -> Error e
-  | Ok (Some left, tail) -> parse_comparison' left tail
+  | Ok (Some left, tail) -> parse_comparison_tail left tail
   | Ok (None, _) -> Ok (None, tokens)
 
 and parse_term tokens =
-  let rec parse_term' left tokens =
-    match tokens with
+  let rec parse_term_tail left = function
     | (((`PLUS | `MINUS), _) as op) :: tail -> (
         match parse_factor tail with
         | Error e -> Error e
         | Ok (Some right, tail') ->
-            parse_term'
-              (Binary { left_expr = left; operator = op; right_expr = right })
-              tail'
+            let new_left =
+              Binary { left_expr = left; operator = op; right_expr = right }
+            in
+            parse_term_tail new_left tail'
         | Ok (None, _) -> Error "Expected expression after + or -")
-    | _ -> Ok (Some left, tokens)
+    | tokens -> Ok (Some left, tokens)
   in
   match parse_factor tokens with
   | Error e -> Error e
-  | Ok (Some left, tail) -> parse_term' left tail
+  | Ok (Some left, tail) -> parse_term_tail left tail
   | Ok (None, _) -> Ok (None, tokens)
 
 and parse_factor tokens =
-  let rec parse_factor' left tokens =
-    match tokens with
+  let rec parse_factor_tail left = function
     | (((`STAR | `SLASH), _) as op) :: tail -> (
         match parse_unary tail with
         | Error e -> Error e
         | Ok (Some right, tail') ->
-            parse_factor'
-              (Binary { left_expr = left; operator = op; right_expr = right })
-              tail'
+            let new_left =
+              Binary { left_expr = left; operator = op; right_expr = right }
+            in
+            parse_factor_tail new_left tail'
         | Ok (None, _) -> Error "Expected expression after * or /")
-    | _ -> Ok (Some left, tokens)
+    | tokens -> Ok (Some left, tokens)
   in
   match parse_unary tokens with
   | Error e -> Error e
-  | Ok (Some left, tail) -> parse_factor' left tail
+  | Ok (Some left, tail) -> parse_factor_tail left tail
   | Ok (None, _) -> Ok (None, tokens)
 
 and parse_unary = function
@@ -218,9 +202,7 @@ and parse_unary = function
       match parse_unary tail with
       | Error e -> Error e
       | Ok (None, _) -> Error "Expect expression after unary operator."
-      | Ok (Some expr, tail') ->
-          let ast = Unary { operator; expr } in
-          Ok (Some ast, tail'))
+      | Ok (Some expr, tail') -> Ok (Some (Unary { operator; expr }), tail'))
   | tokens -> parse_primary tokens
 
 and parse_primary = function
@@ -228,35 +210,29 @@ and parse_primary = function
       match parse_expression tail with
       | Error e -> Error e
       | Ok (None, _) -> Error "Expect expression in parentheses."
-      | Ok (Some expr, tail') -> (
-          match tail' with
-          | (`RIGHT_PAREN, _) :: tail -> Ok (Some (Group { expr }), tail)
-          | _ -> Error "Expect ')' after expression."))
+      | Ok (Some expr, (`RIGHT_PAREN, _) :: tail) ->
+          Ok (Some (Group { expr }), tail)
+      | Ok (Some _, _) -> Error "Expect ')' after expression.")
   | ((`IDENTIFIER, _) as identifier) :: (`EQUAL, _) :: tail -> (
       match parse_expression tail with
       | Error e -> Error e
       | Ok (None, _) -> Error "Expect expression following assignment."
       | Ok (Some expr, tail') ->
-          let assignment = Assignment { identifier; expr } in
-          Ok (Some assignment, tail'))
-  | ((`IDENTIFIER, _) as token) :: tail ->
-      let node = Identifier { token } in
-      Ok (Some node, tail)
+          Ok (Some (Assignment { identifier; expr }), tail'))
+  | ((`IDENTIFIER, _) as token) :: tail -> Ok (Some (Identifier { token }), tail)
   | (((`TRUE | `FALSE | `NIL | `STRING | `NUMBER), _) as token) :: tail ->
       Ok (Some (Literal { token }), tail)
-  | (`EOF, _) :: _ as tokens -> Ok (None, tokens)
+  | (`EOF, _) :: _ -> Ok (None, [])
   | _ -> Error "Expect expression."
 
 let parse tokens =
-  let rec parse' tokens statements =
-    match parse_statement tokens with
-    | Error e -> Error e
-    | Ok (None, _) -> Error "Expect statement."
-    | Ok (Some new_statement, [ (`EOF, _) ]) ->
-        let program = new_statement :: statements in
-        Ok (List.rev program)
-    | Ok (Some new_statement, tokens') ->
-        parse' tokens' (new_statement :: statements)
+  let rec parse_program acc = function
+    | [] -> Ok (List.rev acc)
+    | tokens -> (
+        match parse_statement tokens with
+        | Error e -> Error e
+        | Ok (None, _) -> Error "Expect statement."
+        | Ok (Some stmt, [ (`EOF, _) ]) -> Ok (List.rev (stmt :: acc))
+        | Ok (Some stmt, rest) -> parse_program (stmt :: acc) rest)
   in
-
-  parse' tokens []
+  parse_program [] tokens
