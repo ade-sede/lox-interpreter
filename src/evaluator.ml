@@ -1,4 +1,25 @@
+exception Evaluation_error of string
+
 type value = Nil | Boolean of bool | String of string | Number of float
+
+(*
+   1 store = 1 scope
+   When we open a block, a new scope is created by prepending a new hash table to
+   the list
+*)
+let scopes : (string, value) Hashtbl.t list ref = ref [ Hashtbl.create 1000 ]
+
+let get key =
+  let rec get' stores key =
+    match stores with
+    | [] -> None
+    | store :: others -> (
+        match Hashtbl.find_opt store key with
+        | None -> get' others key
+        | Some data -> Some (store, data))
+  in
+
+  get' !scopes key
 
 let string_of_expression_evaluation value =
   match value with
@@ -18,10 +39,52 @@ let rec evaluate_statement stmt =
           Printf.printf "%s\n" s;
           Ok value)
   | Parser.ExprStmt { expr } -> evaluate_expression expr
+  | Parser.Declaration { identifier = _, { lexeme; _ }; initial_value } -> (
+      match !scopes with
+      | [] -> assert false
+      | current_store :: _ -> (
+          try
+            let varname = lexeme in
+
+            let initial_value =
+              match initial_value with
+              | None -> Nil
+              | Some expr -> (
+                  match evaluate_expression expr with
+                  | Error e -> raise (Evaluation_error e)
+                  | Ok value -> value)
+            in
+
+            (* When declaring a variable if the variable exists in the current scope
+               its value is overwritten. If it does not exist it is added to the
+               current scope, with the specified initial value *)
+            (match Hashtbl.find_opt current_store varname with
+            | None -> Hashtbl.add current_store varname initial_value
+            | Some _ -> Hashtbl.replace current_store varname initial_value);
+
+            Ok initial_value
+          with Evaluation_error e -> Error e))
 
 and evaluate_expression expr =
   let rec evaluate_expression' expr =
     match expr with
+    | Parser.Identifier { token } -> (
+        let _, body = token in
+        let identifier = body.lexeme in
+
+        (* Go up scopes recursively until a match is found. Or not *)
+        let rec get_value stores key =
+          match stores with
+          | [] -> None
+          | store :: other_stores -> (
+              match Hashtbl.find_opt store key with
+              | None -> get_value other_stores key
+              | Some v -> Some v)
+        in
+
+        match get_value !scopes identifier with
+        | None -> Error (Printf.sprintf "Undefined variable '%s'." identifier)
+        | Some value -> Ok value)
     | Parser.Literal { token } -> (
         match token with
         | `TRUE, _ -> Ok (Boolean true)
@@ -96,3 +159,17 @@ and evaluate_expression expr =
   in
 
   evaluate_expression' expr
+
+and run_program program =
+  let rec run' program =
+    match program with
+    | [] -> ()
+    | head :: tail -> (
+        match evaluate_statement head with
+        | Error e ->
+            Printf.eprintf "%s\n" e;
+            exit 70
+        | Ok _ -> run' tail)
+  in
+
+  run' program

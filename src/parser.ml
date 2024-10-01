@@ -13,14 +13,32 @@ and expression =
   | Group of group
   | Unary of unary
   | Binary of binary
+  | Identifier of { token : Tokens.identifier_token }
 
 and printStmt = { expr : expression }
 and exprStmt = { expr : expression }
-and statement = ExprStmt of exprStmt | PrintStmt of printStmt
+
+and declaration = {
+  identifier : Tokens.identifier_token;
+  initial_value : expression option;
+}
+
+and statement =
+  | ExprStmt of exprStmt
+  | PrintStmt of printStmt
+  | Declaration of declaration
+
 and program = statement list
 
 let rec string_of_expr expr =
   match expr with
+  | Identifier { token } ->
+      let _, body = token in
+      let identifier =
+        match body.value with String s -> s | _ -> assert false
+      in
+
+      identifier
   | Literal { token } -> (
       match token with
       | `TRUE, _ -> "true"
@@ -69,6 +87,24 @@ let rec parse_statement tokens =
               let statement = PrintStmt { expr } in
               Ok (Some statement, tail'')
           | _ -> Error "Expected ';' after expression"))
+  | (`VAR, _) :: (`IDENTIFIER, id) :: (`EQUAL, _) :: tail -> (
+      match parse_expression tail with
+      | Error e -> Error e
+      | Ok (None, _) -> Error "Expected expression after print keyword"
+      | Ok (Some expr, tail') -> (
+          match tail' with
+          | (`SEMICOLON, _) :: tail'' ->
+              let declaration =
+                Declaration
+                  { initial_value = Some expr; identifier = (`IDENTIFIER, id) }
+              in
+              Ok (Some declaration, tail'')
+          | _ -> Error "Expected ';' after expression"))
+  | (`VAR, _) :: (`IDENTIFIER, id) :: (`SEMICOLON, _) :: tail ->
+      let declaration =
+        Declaration { initial_value = None; identifier = (`IDENTIFIER, id) }
+      in
+      Ok (Some declaration, tail)
   | _ -> (
       match parse_expression tokens with
       | Error e -> Error e
@@ -174,6 +210,9 @@ and parse_primary = function
           match tail' with
           | (`RIGHT_PAREN, _) :: tail -> Ok (Some (Group { expr }), tail)
           | _ -> Error "Expect ')' after expression."))
+  | ((`IDENTIFIER, _) as token) :: tail ->
+      let node = Identifier { token } in
+      Ok (Some node, tail)
   | (((`TRUE | `FALSE | `NIL | `STRING | `NUMBER), _) as token) :: tail ->
       Ok (Some (Literal { token }), tail)
   | (`EOF, _) :: _ as tokens -> Ok (None, tokens)

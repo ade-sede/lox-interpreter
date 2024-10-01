@@ -45,6 +45,7 @@ type token_type =
 type token = token_type * token_body
 type literal_token = [ `TRUE | `FALSE | `NIL | `STRING | `NUMBER ] * token_body
 type unary_operator_token = [ `BANG | `MINUS ] * token_body
+type identifier_token = [ `IDENTIFIER ] * token_body
 
 type binary_operator_token =
   [ `PLUS
