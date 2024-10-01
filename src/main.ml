@@ -63,16 +63,7 @@ let () =
         | Error e ->
             Printf.eprintf "%s\n" e;
             exit 65
-        | Ok program ->
-            let eval stmt =
-              match Evaluator.evaluate_statement stmt with
-              | Error e ->
-                  Printf.eprintf "%s\n" e;
-                  exit 70
-              | _ -> ()
-            in
-
-            List.iter eval program)
+        | Ok program -> Evaluator.run_program program)
   | _ ->
       In_channel.close ic;
       Printf.eprintf "Unknown command: %s\n" command;

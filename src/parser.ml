@@ -30,6 +30,7 @@ and statement =
   | ExprStmt of exprStmt
   | PrintStmt of printStmt
   | Declaration of variable_declaration
+  | Block of statement list
 
 and program = statement list
 
@@ -82,6 +83,22 @@ let rec string_of_expr expr =
 
 let rec parse_statement tokens =
   match tokens with
+  | (`LEFT_BRACE, _) :: tail ->
+      let rec parse_block' statements tokens =
+        match parse_statement tokens with
+        | Error e -> Error e
+        | Ok (None, _) -> Error "Expected statement."
+        | Ok (Some new_statement, tail) -> (
+            match tail with
+            | (`RIGHT_BRACE, _) :: tail' ->
+                let statements = List.rev (new_statement :: statements) in
+                let block = Block statements in
+
+                Ok (Some block, tail')
+            | _ -> parse_block' (new_statement :: statements) tail)
+      in
+
+      parse_block' [] tail
   | (`PRINT, _) :: tail -> (
       match parse_expression tail with
       | Error e -> Error e

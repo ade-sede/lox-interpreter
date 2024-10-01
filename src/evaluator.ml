@@ -31,6 +31,14 @@ let string_of_expression_evaluation value =
 
 let rec evaluate_statement stmt =
   match stmt with
+  | Parser.Block statements ->
+      let new_store = Hashtbl.create 1000 in
+      scopes := new_store :: !scopes;
+
+      run_program statements;
+
+      scopes := List.tl !scopes;
+      Ok Nil
   | Parser.PrintStmt { expr } -> (
       match evaluate_expression expr with
       | Error e -> Error e
