@@ -15,7 +15,7 @@ let rec evaluate_statement stmt =
       | Error e -> Error e
       | Ok value ->
           let s = string_of_expression_evaluation value in
-          Printf.printf "%s" s;
+          Printf.printf "%s\n" s;
           Ok value)
   | Parser.ExprStmt { expr } -> evaluate_expression expr
 
