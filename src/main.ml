@@ -52,6 +52,24 @@ let () =
             | Ok value ->
                 Printf.printf "%s\n"
                   (Evaluator.string_of_expression_evaluation value)))
+  | "run" -> (
+      let results = Lexer.tokenize ic in
+
+      if List.length results.errors > 0 then (
+        List.iter print_error results.errors;
+        exit 65)
+      else
+        match Parser.parse results.tokens with
+        | Error e ->
+            Printf.eprintf "%s\n" e;
+            exit 65
+        | Ok program ->
+            let eval stmt =
+              let _ = Evaluator.evaluate_statement stmt in
+              ()
+            in
+
+            List.iter eval program)
   | _ ->
       In_channel.close ic;
       Printf.eprintf "Unknown command: %s\n" command;
