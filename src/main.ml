@@ -1,6 +1,6 @@
 let print_token t = Printf.printf "%s\n" (Tokens.string_of_token t)
 let print_error e = Printf.eprintf "%s\n" e
-let print_ast ast = Printf.printf "%s\n" (Parser.string_of_ast ast)
+let print_expr expr = Printf.printf "%s\n" (Parser.string_of_expr expr)
 
 let () =
   if Array.length Sys.argv < 3 then (
@@ -26,12 +26,12 @@ let () =
         List.iter print_error results.errors;
         exit 65)
       else
-        match Parser.parse results.tokens with
+        match Parser.parse_expression results.tokens with
         | Error e ->
             Printf.eprintf "%s\n" e;
             exit 65
-        | Ok None -> assert false
-        | Ok (Some ast) -> print_ast ast)
+        | Ok (None, _) -> assert false
+        | Ok (Some expr, _) -> print_expr expr)
   | "evaluate" -> (
       let results = Lexer.tokenize ic in
 
@@ -39,18 +39,19 @@ let () =
         List.iter print_error results.errors;
         exit 65)
       else
-        match Parser.parse results.tokens with
+        match Parser.parse_expression results.tokens with
         | Error e ->
             Printf.eprintf "%s\n" e;
             exit 65
-        | Ok None -> assert false
-        | Ok (Some ast) -> (
-            match Evaluator.evaluate ast with
+        | Ok (None, _) -> assert false
+        | Ok (Some expr, _) -> (
+            match Evaluator.evaluate_expression expr with
             | Error e ->
                 Printf.eprintf "%s\n" e;
                 exit 70
             | Ok value ->
-                Printf.printf "%s\n" (Evaluator.string_of_evaluation value)))
+                Printf.printf "%s\n"
+                  (Evaluator.string_of_expression_evaluation value)))
   | _ ->
       In_channel.close ic;
       Printf.eprintf "Unknown command: %s\n" command;

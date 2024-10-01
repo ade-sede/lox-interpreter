@@ -1,6 +1,6 @@
 type value = Nil | Boolean of bool | String of string | Number of float
 
-let string_of_evaluation value =
+let string_of_expression_evaluation value =
   match value with
   | Nil -> Printf.sprintf "nil"
   | Boolean true -> Printf.sprintf "true"
@@ -8,8 +8,8 @@ let string_of_evaluation value =
   | String s -> Printf.sprintf "%s" s
   | Number n -> Printf.sprintf "%g" n
 
-let rec evaluate ast =
-  match ast with
+let rec evaluate_expression expr =
+  match expr with
   | Parser.Literal { token } -> (
       match token with
       | `TRUE, _ -> Ok (Boolean true)
@@ -25,9 +25,9 @@ let rec evaluate ast =
           | None -> assert false
           | Number _ -> assert false
           | String s -> Ok (String s)))
-  | Parser.Group { expr } -> evaluate expr
+  | Parser.Group { expr } -> evaluate_expression expr
   | Parser.Unary { expr; operator } -> (
-      let value = evaluate expr in
+      let value = evaluate_expression expr in
       match (operator, value) with
       | _, Error e -> Error e
       | (`BANG, _), Ok (Boolean true | Number _) -> Ok (Boolean false)
@@ -36,8 +36,8 @@ let rec evaluate ast =
       | (`MINUS, _), _ -> Error "Operand must be a number."
       | _, _ -> failwith "Type mismatch")
   | Parser.Binary { left_expr; operator; right_expr } -> (
-      let left = evaluate left_expr in
-      let right = evaluate right_expr in
+      let left = evaluate_expression left_expr in
+      let right = evaluate_expression right_expr in
       match (operator, left, right) with
       | _, Error e, _ -> Error e
       | _, _, Error e -> Error e

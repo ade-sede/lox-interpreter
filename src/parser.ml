@@ -14,10 +14,13 @@ and expression =
   | Unary of unary
   | Binary of binary
 
-type ast = expression
+and printStmt = { expr : expression }
+and exprStmt = { expr : expression }
+and statement = ExprStmt of exprStmt | PrintStmt of printStmt
+and program = statement list
 
-let rec string_of_ast ast =
-  match ast with
+let rec string_of_expr expr =
+  match expr with
   | Literal { token } -> (
       match token with
       | `TRUE, _ -> "true"
@@ -26,11 +29,11 @@ let rec string_of_ast ast =
       | (`NUMBER | `STRING), token_body ->
           Tokens.string_of_token_value token_body.value)
   | Group { expr } ->
-      let expr = string_of_ast expr in
+      let expr = string_of_expr expr in
 
       Printf.sprintf "(group %s)" expr
   | Unary { operator; expr } ->
-      let expr = string_of_ast expr in
+      let expr = string_of_expr expr in
       let operator = match operator with `BANG, _ -> "!" | `MINUS, _ -> "-" in
 
       Printf.sprintf "(%s %s)" operator expr
@@ -49,12 +52,35 @@ let rec string_of_ast ast =
         | `LESS, _ -> "<"
         | `LESS_EQUAL, _ -> "<="
       in
-      let left_expr = string_of_ast left_expr in
-      let right_expr = string_of_ast right_expr in
+      let left_expr = string_of_expr left_expr in
+      let right_expr = string_of_expr right_expr in
 
       Printf.sprintf "(%s %s %s)" operator left_expr right_expr
 
-let rec parse_expression tokens = parse_equality tokens
+let rec parse_statement tokens =
+  match tokens with
+  | (`PRINT, _) :: tail -> (
+      match parse_expression tail with
+      | Error e -> Error e
+      | Ok (None, _) -> Error "Expected expression after print keyword"
+      | Ok (Some expr, tail') -> (
+          match tail' with
+          | (`SEMICOLON, _) :: tail'' ->
+              let statement = PrintStmt { expr } in
+              Ok (Some statement, tail'')
+          | _ -> Error "Expected ';' after expression"))
+  | _ -> (
+      match parse_expression tokens with
+      | Error e -> Error e
+      | Ok (None, _) -> Error "Expected expression after print keyword"
+      | Ok (Some expr, tail) -> (
+          match tail with
+          | (`SEMICOLON, _) :: tail' ->
+              let statement = ExprStmt { expr } in
+              Ok (Some statement, tail')
+          | _ -> Error "Expected ';' after expression"))
+
+and parse_expression tokens = parse_equality tokens
 
 and parse_equality tokens =
   let rec parse_equality' left tokens =
@@ -154,8 +180,15 @@ and parse_primary = function
   | _ -> Error "Expect expression."
 
 let parse tokens =
-  match parse_expression tokens with
-  | Error e -> Error e
-  | Ok (None, _) -> Error "Expect expression."
-  | Ok (Some ast, [ (`EOF, _) ]) -> Ok (Some ast)
-  | Ok (_, _) -> Error "Unexpected tokens after expression."
+  let rec parse' tokens statements =
+    match parse_statement tokens with
+    | Error e -> Error e
+    | Ok (None, _) -> Error "Expect statement."
+    | Ok (Some new_statement, [ (`EOF, _) ]) ->
+        let program = new_statement :: statements in
+        Ok (List.rev program)
+    | Ok (Some new_statement, tokens') ->
+        parse' tokens' (new_statement :: statements)
+  in
+
+  parse' tokens []
