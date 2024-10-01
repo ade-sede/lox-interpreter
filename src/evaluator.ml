@@ -88,6 +88,10 @@ and evaluate_expression expr =
             Ok (Boolean (String.equal left right))
         | (`BANG_EQUAL, _), Ok (String left), Ok (String right) ->
             Ok (Boolean (not (String.equal left right)))
+        | (`EQUAL_EQUAL, _), Ok (Boolean left), Ok (Boolean right) ->
+            Ok (Boolean (Bool.equal left right))
+        | (`BANG_EQUAL, _), Ok (Boolean left), Ok (Boolean right) ->
+            Ok (Boolean (not (Bool.equal left right)))
         | _, _, _ -> Ok (Boolean false))
   in
 
