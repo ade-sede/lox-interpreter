@@ -36,9 +36,7 @@ and program = statement list
 
 let rec string_of_expr expr =
   match expr with
-  | Identifier { token } -> (
-      let _, body = token in
-      match body.value with String s -> s | _ -> assert false)
+  | Identifier { token } -> (snd token).lexeme
   | Literal { token } -> (
       match token with
       | `TRUE, _ -> "true"
