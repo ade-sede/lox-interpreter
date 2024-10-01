@@ -68,6 +68,37 @@ let rec evaluate_statement stmt =
 and evaluate_expression expr =
   let rec evaluate_expression' expr =
     match expr with
+    | Parser.Assignment { expr; identifier } -> (
+        let _, body = identifier in
+        let identifier = body.lexeme in
+
+        match evaluate_expression expr with
+        | Error e -> Error e
+        | Ok new_value -> (
+            (*
+               Assigning to a variable can be a bit tricky. We need to find the
+               closest definition of the variable, going up scope by scope. If we
+               don't find a definition there is an error. If we do find a
+               definition, we need to assign to the exact scope we found it in.
+            *)
+            let rec get' stores key =
+              match stores with
+              | [] -> None
+              | store :: other_stores -> (
+                  match Hashtbl.find_opt store key with
+                  | None -> get' other_stores key
+                  | Some v -> Some (store, v))
+            in
+
+            let assignment =
+              match get' !scopes identifier with
+              | None ->
+                  Error (Printf.sprintf "Undefined variable '%s'." identifier)
+              | Some (store, _) ->
+                  Ok (Hashtbl.replace store identifier new_value)
+            in
+
+            match assignment with Error e -> Error e | Ok _ -> Ok new_value))
     | Parser.Identifier { token } -> (
         let _, body = token in
         let identifier = body.lexeme in

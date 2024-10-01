@@ -8,12 +8,15 @@ and binary = {
   right_expr : expression;
 }
 
+and assignment = { identifier : Tokens.identifier_token; expr : expression }
+
 and expression =
   | Literal of literal
   | Group of group
   | Unary of unary
   | Binary of binary
   | Identifier of { token : Tokens.identifier_token }
+  | Assignment of assignment
 
 and printStmt = { expr : expression }
 and exprStmt = { expr : expression }
@@ -74,6 +77,8 @@ let rec string_of_expr expr =
       let right_expr = string_of_expr right_expr in
 
       Printf.sprintf "(%s %s %s)" operator left_expr right_expr
+  | Assignment _ ->
+      failwith "String representation of 'Assignment' is not supported"
 
 let rec parse_statement tokens =
   match tokens with
@@ -210,6 +215,13 @@ and parse_primary = function
           match tail' with
           | (`RIGHT_PAREN, _) :: tail -> Ok (Some (Group { expr }), tail)
           | _ -> Error "Expect ')' after expression."))
+  | ((`IDENTIFIER, _) as identifier) :: (`EQUAL, _) :: tail -> (
+      match parse_expression tail with
+      | Error e -> Error e
+      | Ok (None, _) -> Error "Expect expression following assignment."
+      | Ok (Some expr, tail') ->
+          let assignment = Assignment { identifier; expr } in
+          Ok (Some assignment, tail'))
   | ((`IDENTIFIER, _) as token) :: tail ->
       let node = Identifier { token } in
       Ok (Some node, tail)
