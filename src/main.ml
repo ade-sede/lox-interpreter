@@ -65,8 +65,11 @@ let () =
             exit 65
         | Ok program ->
             let eval stmt =
-              let _ = Evaluator.evaluate_statement stmt in
-              ()
+              match Evaluator.evaluate_statement stmt with
+              | Error e ->
+                  Printf.eprintf "%s\n" e;
+                  exit 70
+              | _ -> ()
             in
 
             List.iter eval program)
