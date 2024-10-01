@@ -1,0 +1,6 @@
+var hello = "Hello";
+{
+	var hello = "Guten Tag";
+	print hello + ", Reader!";
+}
+print hello + ", Reader!";
