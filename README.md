@@ -25,8 +25,7 @@ Hello, Reader!
 
 Alternatively to running you can:
 
-- `tokenize` to see the list of tokens in the source ifle
-- `parse` to see a string representation of the AST
+- `tokenize` to see the list of tokens in the source file
 
 # Status
 
